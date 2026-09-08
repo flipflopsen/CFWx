@@ -1,0 +1,42 @@
+[2025-05-28 15:02:00 INFO logger.c:62] Logger initialized - writing to ../log/cfwx_app.log
+[2025-05-28 15:02:00 INFO logger.c:78] Log level set to DEBUG
+[2025-05-28 15:02:00 INFO main.c:46] Running CFWx main logic
+
+[2025-05-28 15:02:00 INFO logger.c:69] Logger shutting down
+[2025-05-28 15:31:22 INFO logger.c:62] Logger initialized - writing to ../log/cfwx_app.log
+[2025-05-28 15:31:22 INFO logger.c:78] Log level set to DEBUG
+[2025-05-28 15:31:22 INFO main.c:25] Running CFWx main logic
+
+[2025-05-28 15:31:22 INFO logger.c:69] Logger shutting down
+[2025-05-28 15:59:48 INFO logger.c:62] Logger initialized - writing to ../log/cfwx_app.log
+[2025-05-28 15:59:48 INFO logger.c:78] Log level set to DEBUG
+[2025-05-28 15:59:48 INFO main.c:25] Running CFWx main logic
+
+[2025-05-28 15:59:48 INFO logger.c:69] Logger shutting down
+[2025-06-09 18:49:46 INFO logger.c:62] Logger initialized - writing to ../log/cfwx_app.log
+[2025-06-09 18:49:46 INFO logger.c:78] Log level set to DEBUG
+[2025-06-09 18:49:46 INFO main.c:22] Running CFWx main logic
+
+[2025-06-09 18:49:46 INFO logger.c:69] Logger shutting down
+[2025-06-13 15:04:26 INFO logger.c:62] Logger initialized - writing to ../log/cfwx_app.log
+[2025-06-13 15:04:26 INFO logger.c:78] Log level set to DEBUG
+[2025-06-13 15:04:26 INFO main.c:22] Running CFWx main logic
+
+[2025-06-13 15:04:26 INFO logger.c:69] Logger shutting down
+[INFO] Logger initialized - writing to /home/flip/Programming/CFWx/log/cfwx_app.log
+[2026-05-13 11:47:22 INFO logger.c:135] Log level set to DEBUG
+[2026-05-13 11:47:22 INFO main.c:30] Running CFWx main logic
+
+[2026-05-13 11:47:22 INFO logger.c:124] Logger shutting down
+[INFO] Logger initialized - writing to /home/flip/Programming/CFWx/log/cfwx_app.log
+[2026-05-13 12:02:45 INFO main.c:34] No debugger detected - Setting LogLevel to INFO
+[2026-05-13 12:02:45 INFO logger.c:129] Log level set to INFO
+[2026-05-13 12:02:45 INFO main.c:39] Running CFWx main logic
+
+[2026-05-13 12:02:45 INFO logger.c:118] Logger shutting down
+[INFO] Logger initialized - writing to /home/flip/Programming/CFWx/log/cfwx_app.log
+[2026-05-13 15:00:38 INFO main.c:33] No debugger detected - Setting LogLevel to INFO
+[2026-05-13 15:00:38 INFO logger.c:129] Log level set to INFO
+[2026-05-13 15:00:38 INFO main.c:38] Running CFWx main logic
+
+[2026-05-13 15:00:38 INFO logger.c:118] Logger shutting down

@@ -1,0 +1,6 @@
+[INFO] Logger initialized - writing to /home/flip/Programming/CFWx/log/cfwx_app_debug.log
+[2026-05-13 12:02:43 INFO main.c:29] Debugger detected - Setting LogLevel to DEBUG
+[2026-05-13 12:02:43 INFO logger.c:129] Log level set to DEBUG
+[2026-05-13 12:02:43 INFO main.c:39] Running CFWx main logic
+
+[2026-05-13 12:02:43 INFO logger.c:118] Logger shutting down
