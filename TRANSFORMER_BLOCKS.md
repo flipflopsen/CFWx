@@ -39,3 +39,11 @@ Default vcpkg integration, cmocka and custom targets are retained. The example e
 Tests include activation finite differences, repeated embedding IDs, smoothed CE finite differences/ignored rows, dropout masks, RoPE norm preservation, RMSNorm reference, fully masked rows, identity-projection multi-head comparison, zero-branch block identity, and causal invariance when a future token changes.
 
 Backward exists for activations, embeddings, losses, dropout and the original dense layer. Attention, LayerNorm/RMSNorm, RoPE, FFN composites and Transformer blocks do NOT yet expose complete backward passes. Therefore the causal LM example is forward/loss evaluation, not end-to-end training. No KV cache, optimizer beyond SGD, tokenizer, serialization, GPU, fused kernels, batched 3-D attention, or full encoder-decoder cross-attention block. RoPE is an explicit Q/K operation, not silently applied inside projected multi-head attention. Dropout is an explicit block, not automatically enabled inside Transformer evaluation. These boundaries keep the APIs modular and results interpretable.
+
+## Analytic training update
+The former forward-only limitation is superseded by `models/training.h`.
+Complete analytic gradients cover attention (including additive bias), projected multi-head
+attention, LayerNorm/RMSNorm, RoPE, gated/ungated FFNs and residual Transformer blocks.
+`cfwx_language_model_loss` differentiates embeddings, stacked blocks, final normalization
+and the vocabulary head. See TRAINING.md and ARCHITECTURE.md. Earlier forward-only notes
+refer to the original forward API surface, not the current repository capabilities.

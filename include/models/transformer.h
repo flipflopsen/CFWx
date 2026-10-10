@@ -11,7 +11,7 @@
  * library-created objects. Outputs are preallocated. Unless noted, buffers are
  * disjoint, including partial overlaps. Failure may partially modify outputs.
  * Sequence matrices are [tokens,features]; batches are processed by the caller.
- * This module is forward-only except activation, embedding and loss gradients.
+ * Analytic composite backward APIs are declared in models/training.h.
  * Existing dense backward remains available separately. */
 typedef enum
 {
@@ -95,7 +95,7 @@ typedef struct
 /* Pre-LayerNorm block: x+MHA(LN(x)), then residual+FFN(LN(residual)).
  * Deterministic evaluation; compose dropout externally when training.
  * This is an encoder/causal self-attention block, not a full decoder with
- * cross-attention or a trainable autodiff graph. */
+ * cross-attention. Training APIs are in models/training.h. */
 cfwx_status cfwx_transformer_block_init(cfwx_transformer_block *block, size_t width, size_t heads,
                                         size_t hidden, uint64_t seed);
 void cfwx_transformer_block_free(cfwx_transformer_block *block);

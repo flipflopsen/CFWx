@@ -63,3 +63,11 @@ INFO records lifecycle/results, DEBUG records reference values and ERROR records
 All five levels have independent per-context thresholds and an optional custom sink.
 See [CODE_STYLEGUIDE.md](CODE_STYLEGUIDE.md) and `.clang-format`.
 The legacy FILE/localtime backend remains single-threaded.
+
+## End-to-end Transformer training
+The repository now includes complete analytic attention, normalization and composite-block
+backward passes, a stacked causal language model, global gradient clipping and AdamW.
+Run `cfwx_train` for the built-in overfit regression or provide a small byte dataset.
+See [TRAINING.md](TRAINING.md) for commands, reduction/tokenization semantics and limitations,
+and [ARCHITECTURE.md](ARCHITECTURE.md) for the repository/dependency overview.
+The previous forward-only limitation is superseded by `models/training.h`.
