@@ -1,3 +1,8 @@
+## @file scripts/harden_training.py
+# @brief harden training source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotent dataset and failure-diagnostic safety patches."""
 from pathlib import Path
 p=Path('src/experiments/training_runner.c')

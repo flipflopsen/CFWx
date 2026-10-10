@@ -1,4 +1,13 @@
-/* Reference, finite-difference, masking, identity and causal invariance tests. */
+/**
+ * @file test/transformer_test.c
+ * @brief transformer test interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Reference, finite-difference, masking, identity and causal invariance tests. */
 #include "models/transformer.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,9 +22,24 @@
             exit(EXIT_FAILURE);                                                                    \
         }                                                                                          \
     } while (0)
+/** @def OK
+ * @brief ok macro; see expansion and module contract.
+ */
 #define OK(x) CHECK((x) == CFWX_OK)
+/** @def NEAR
+ * @brief near macro; see expansion and module contract.
+ */
 #define NEAR(a, b) CHECK(isfinite(a) && fabs((a) - (b)) < 1e-8)
 
+/**
+ * @anchor api_test_transformer_test_c_primitives
+ * @brief Perform the primitives operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void primitives(void)
 {
     cfwx_matrix x = {0}, y = {0}, dy = {0}, dx = {0}, mask = {0};
@@ -76,6 +100,15 @@ static void primitives(void)
         cfwx_matrix_free(parts[i]);
 }
 
+/**
+ * @anchor api_test_transformer_test_c_embedding_loss
+ * @brief Perform the embedding loss operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void embedding_loss(void)
 {
     cfwx_matrix table = {0}, out = {0}, grad = {0}, dy = {0};
@@ -115,6 +148,15 @@ static void embedding_loss(void)
     cfwx_matrix_free(&dy);
 }
 
+/**
+ * @anchor api_test_transformer_test_c_attention_block
+ * @brief Perform the attention block operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void attention_block(void)
 {
     cfwx_matrix x = {0}, y = {0}, z = {0}, p = {0};
@@ -181,6 +223,15 @@ static void attention_block(void)
     cfwx_matrix_free(&p);
 }
 
+/**
+ * @anchor api_test_transformer_test_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     primitives();

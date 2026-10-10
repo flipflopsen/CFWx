@@ -1,4 +1,13 @@
-/* Dropout finite differences, token-weighted batching, KV equivalence and exact resume. */
+/**
+ * @file test/runtime_test.c
+ * @brief runtime test interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Dropout finite differences, token-weighted batching, KV equivalence and exact resume. */
 #include "models/runtime.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +21,23 @@
             exit(1);                                                                               \
         }                                                                                          \
     } while (0)
+/** @def OK
+ * @brief ok macro; see expansion and module contract.
+ */
 #define OK(x) CHECK((x) == CFWX_OK)
+/** @def CLOSE
+ * @brief close macro; see expansion and module contract.
+ */
 #define CLOSE(a, b) CHECK(isfinite(a) && fabs((a) - (b)) < 1e-7 * (1 + fabs((double)(b))))
+/**
+ * @anchor api_test_runtime_test_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     cfwx_language_model m = {0}, g = {0}, other = {0}, g2 = {0};

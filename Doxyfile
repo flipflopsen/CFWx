@@ -18,14 +18,14 @@ BUILTIN_STL_SUPPORT    = YES
 CPP_CLI_SUPPORT        = NO
 
 # Public APIs, internal implementation, tests, maintenance scripts and guides.
-INPUT                  = include src test scripts cmake docs README.md ARCHITECTURE.md TRAINING.md RUNTIME.md CUDA.md TRANSFORMER_BLOCKS.md CODE_STYLEGUIDE.md CMakeLists.txt .github/workflows .vscode .gitattributes .gitignore
+INPUT                  = include src test scripts docs README.md ARCHITECTURE.md TRAINING.md RUNTIME.md CUDA.md TRANSFORMER_BLOCKS.md CODE_STYLEGUIDE.md
 RECURSIVE              = YES
-FILE_PATTERNS          = *.h *.c *.cu *.py *.md *.dox *.cmake *.txt *.yml *.yaml *.json .gitattributes .gitignore
+FILE_PATTERNS          = *.h *.c *.cu *.py *.md *.dox
 EXTENSION_MAPPING      = cu=C++ cmake=C++ yml=C++ yaml=C++ json=C++ txt=C++
 EXCLUDE_PATTERNS       = */build/* */build-*/* */bin/* */log/* */.git/* */.cache/*
 EXCLUDE_SYMLINKS       = YES
-EXAMPLE_PATH           = test src/experiments
-EXAMPLE_PATTERNS       = *.c
+EXAMPLE_PATH           = . test src/experiments docs docs/gpu-runtime
+EXAMPLE_PATTERNS       = *.c *.md
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             = docs
 USE_MDFILE_AS_MAINPAGE =

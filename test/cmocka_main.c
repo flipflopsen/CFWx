@@ -1,4 +1,13 @@
-/* cmocka smoke tests for injected experiments and stable extreme logits. */
+/**
+ * @file test/cmocka_main.c
+ * @brief cmocka main interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** cmocka smoke tests for injected experiments and stable extreme logits. */
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -10,6 +19,16 @@
 #include "experiments/numerical_runner.h"
 #include "maths/activation_functions.h"
 
+/**
+ * @anchor api_test_cmocka_main_c_numerical_experiment_success
+ * @brief Perform the numerical experiment success operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param state Experiment state including vocabulary, RNG, dataset fingerprint and hyperparameters.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void numerical_experiment_success(void **state)
 {
     (void)state;
@@ -20,6 +39,16 @@ static void numerical_experiment_success(void **state)
     assert_int_equal(numerical_runner(NULL), EXIT_FAILURE);
 }
 
+/**
+ * @anchor api_test_cmocka_main_c_softmax_extreme_logits
+ * @brief Perform the softmax extreme logits operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param state Experiment state including vocabulary, RNG, dataset fingerprint and hyperparameters.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void softmax_extreme_logits(void **state)
 {
     (void)state;
@@ -30,6 +59,15 @@ static void softmax_extreme_logits(void **state)
     assert_float_equal(probabilities[0] + probabilities[1] + probabilities[2], 1.0, 1e-12);
 }
 
+/**
+ * @anchor api_test_cmocka_main_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     const struct CMUnitTest tests[] = {cmocka_unit_test(numerical_experiment_success),

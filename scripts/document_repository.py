@@ -1,3 +1,8 @@
+## @file scripts/document_repository.py
+# @brief document repository source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Add Doxygen comments to repository source without compiling or running CUDA.
 
 Run at repository root. Existing comments/algorithms are preserved. Canonical
@@ -139,7 +144,34 @@ def group(path):
 
 # Conservative declaration/definition matcher; function pointers and control flow
 # are not considered standalone APIs. CUDA qualifiers and extern-C are accepted.
-FUNCTION = re.compile(r'(?m)^(?P<indent>[ \t]*)(?P<ret>(?:(?:extern\s+"C"|static|inline|__global__|__device__|__host__)\s+)*(?:cfwx_status|int|void|bool|double|size_t|uint64_t|const\s+char\s*\*|node\s*\*|Dense|std::vector<int>))\s*(?P<name>[A-Za-z_]\w*)\s*\((?P<args>[^;{}]*?)\)\s*(?P<end>[;{])')
+FUNCTION = re.compile(r'(?m)^(?P<indent>[ \t]*)(?P<ret>(?:(?:extern\s+"C"|static|inline|__global__|__device__|__host__)\s+)*(?:cfwx_status|int|void|bool|double|size_t|uint64_t|const\s+char\s*\*|node\s*\*|Dense|std::vector<int>))(?:\s+|(?<=\*)\s*)(?P<name>[A-Za-z_]\w*)\s*\((?P<args>[^;{}]*?)\)\s*(?P<end>[;{])')
+
+PARAMS.update({
+    'x': 'Borrowed primal/input numeric operand; shape is stated in the operation contract.',
+    'dy': 'Borrowed upstream adjoint; same output shape as the corresponding forward operation.',
+    'out': 'Caller-supplied output storage; allocate its required shape before calling. Constructor APIs instead receive an owner destination.',
+    'ids': 'Borrowed token/index array with one entry per sequence position; validate against vocabulary/table bounds.',
+    'tokens': 'Borrowed token IDs, laid out as sequence/batch arrays according to this API.',
+    'targets': 'Borrowed next-token targets; SIZE_MAX is ignored only where the loss API explicitly supports it.',
+    'count': 'Number of entries/elements; must match the associated buffer or registry contract.',
+    'length': 'Number of sequence positions/tokens processed by this call.',
+    'size': 'Positive number of elements in the requested storage.',
+    'values': 'Borrowed numerical values to import or process; length must match the supplied count.',
+    'data': 'Borrowed source bytes/numerical storage; valid for the stated count.',
+    'message': 'Borrowed formatted diagnostic payload; valid only for the sink callback duration.',
+    'weights': 'Borrowed row-major projection weights [input,output].',
+    'input': 'Borrowed neuron input vector matching the weight count.',
+    'scale': 'Finite vector multiplier; numerical overflow can follow ordinary IEEE-754 behavior.',
+    'p': 'Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.',
+    'g': 'Gradient record or internal operand as declared; shape/reduction follows this operation contract.',
+    'n': 'Element count or owner/internal node as declared; see containing module contracts.',
+    'a': 'First borrowed numerical operand or internal node/state as declared.',
+    'b': 'Second borrowed numerical operand or internal node/state as declared.',
+    'q': 'Query operand [queries,head_depth] for attention, or corresponding model query state.',
+    'k': 'Key operand [keys,head_depth] for attention.',
+    'v': 'Value operand [keys,value_depth] for attention.',
+    'clip': 'Positive finite global gradient-clipping threshold.',
+})
 
 public = {}
 for path in sorted(Path('include').rglob('*.h')):
@@ -156,13 +188,23 @@ for root in ('include','src','test'):
             text = '/**\n * @file '+str(path)+'\n * @brief '+title+'\n * @ingroup '+module+'\n * @details See the module guide for shape, ownership, failure and execution-policy\n * constraints. Source listings include implementation helpers and ordinary\n * explanatory comments; generated source documentation does not execute code.\n */\n\n'+text
         # Promote explanatory contracts to Doxygen details. Only block comments,
         # never strings or preprocessor replacements, are changed by this step.
-        text = re.sub(r'/\*(?![*!])', '/**', text)
+        text = re.sub(r'(?m)^/\*(?![*!])', '/**', text)
         inserts=[]
         for m in FUNCTION.finditer(text):
             name=m['name']
+            if any(a.strip() not in ('void', '...') and not re.match(r'^(?:const\s+)?(?:cfwx_\w+|experiment_logger|options_t|LogLevel|logger_sink_fn|size_t|uint64_t|double|int|unsigned|char|bool|void|node|tape|stream|Dense|Graph|Node|Segment|std::vector<int>|cudaError_t)\b', a.strip()) for a in m['args'].split(',')):
+                continue
             # Stable marker avoids doubling annotations on repeated maintenance.
             if '@anchor api_'+str(path).replace('/','_').replace('.','_')+'_'+name in text: continue
             args=m['args'].strip()
+            adjacent_matches = list(re.finditer(r'/\*\*?((?:(?!\*/).)*?)\*/', text[:m.start()], re.S))
+            adjacent = adjacent_matches[-1] if adjacent_matches and not text[adjacent_matches[-1].end():m.start()].strip() else None
+            contract = ''
+            if adjacent:
+                raw = adjacent[1]
+                if '@anchor' not in raw and '@file' not in raw:
+                    contract = ' '.join(re.sub(r'(?m)^\s*\* ?', '', raw).split())
+
             names=[]
             for arg in args.split(','):
                 arg=arg.strip()
@@ -178,13 +220,38 @@ for root in ('include','src','test'):
                 else:brief='Perform the '+name.replace('cfwx_','').replace('_',' ')+' operation.'
             block=['/**',' * @anchor api_'+str(path).replace('/','_').replace('.','_')+'_'+name,' * @brief '+brief,' * @ingroup '+module]
             if path.suffix in ('.c','.cu') and name in public:
-                block+=[' * @copydetails '+name,' * @see '+str(public[name])]
+                block+=[' * @details Implementation of the public declaration; its canonical contract', ' * remains in the corresponding header and is merged by Doxygen.', ' * @see '+name+' '+str(public[name])]
             else:
                 block+=[' * @details Read the adjacent operation-specific contract and linked module guide',
                         ' * for exact dimensions, aliasing, reduction and error behavior. Parameters',
                         ' * are borrowed unless the constructor/free contract explicitly transfers ownership.']
+                if contract: block += [' * @par Operation contract', ' * '+contract]
                 for param,arg in names:
                     desc=PARAMS.get(param)
+                    # Names such as v/q/k are overloaded: inspect type and operation.
+                    if 'cfwx_vector' in arg:
+                        desc = 'Vector owner/operand with contiguous size-element storage; constructor/free versus input role follows this operation.'
+                    if name.endswith('_init') and param in ('m','v','n','t','l','layer','block','model','cache','optimizer','o'):
+                        desc = 'Caller-owned destination; must be zero-initialized/empty before construction. Successful construction transfers owned storage into it.'
+                    if name.endswith('_free'):
+                        desc = 'Owner whose allocated storage is released and state reset; NULL is accepted where the implementation documents/checks it.'
+                    if param == 'out' and name == 'cfwx_vector_dot':
+                        desc = 'Scalar dot-product output pointer; written only after successful finite-result validation.'
+                    if param == 'out' and name.startswith('cfwx_cuda_get_'):
+                        desc = 'Host destination double array; count must equal the flattened CUDA parameter count.'
+                    if param == 'out' and name == 'cfwx_cuda_create':
+                        desc = 'Output pointer to a newly created opaque device model; initialized to NULL on entry.'
+                    if param == 'n' and 'size_t' in arg:
+                        desc = 'Positive scalar element count; each associated vector/array must contain at least n entries.'
+                    if param in ('q','k','v') and 'cfwx_matrix' not in arg:
+                        desc = 'Operation-specific owner or scalar as declared; not necessarily an attention operand.'
+                    if param == 'logits' and name.endswith(('forward','decode')):
+                        desc = 'Preallocated logit output matrix: [length,vocabulary] for full forward or [1,vocabulary] for decode.'
+                    if param == 'token' and name == 'cfwx_language_model_decode':
+                        desc = 'Input token ID below model vocabulary; appended to the cache on success.'
+                    if param == 'token' and name == 'cfwx_sample_logits':
+                        desc = 'Output sampled categorical token ID.'
+
                     if desc is None:
                         if param in ('dy','dx','dq','dk','dv','dbias','dw','dquery','dcontext'):
                             desc='Upstream adjoint input.' if param=='dy' else 'Preallocated analytic gradient output; shape matches the corresponding primal.'
@@ -200,9 +267,10 @@ for root in ('include','src','test'):
                 if 'cfwx_status' in ret:
                     block+=[' * @return CFWX_OK on success; otherwise an invalid-argument, shape, allocation',
                             ' * or numerical status as checked by the implementation. Do not consume failed outputs.']
-                elif re.search(r'\bvoid\b',ret):block+=[' * @return No value; inspect the documented mutation/lifetime effects.']
-                elif name.startswith('cfwx_cuda_'):block+=[' * @return Zero on success for status APIs; counts/error text for query APIs,',
-                                                        ' * as specified in the adjacent CUDA contract.']
+                elif re.search(r'\bvoid\b',ret):block+=[' * @note This operation returns no value; inspect its documented mutation/lifetime effects.']
+                elif name == 'cfwx_cuda_error':block+=[' * @return Borrowed last-error text; valid until the next model API call or destruction.']
+                elif name == 'cfwx_cuda_parameter_count':block+=[' * @return Flattened scalar parameter count; zero for a NULL model.']
+                elif name.startswith('cfwx_cuda_'):block+=[' * @return Zero on success, nonzero on invalid arguments, allocation, CUDA API or numerical failure.']
                 elif ret.strip().endswith('*'):block+=[' * @return Pointer described by the operation contract; ownership is not implied.']
                 else:block+=[' * @return Computed value or status described by the adjacent contract.']
             if '/gpu/' in str(path) or path.name=='cuda_manual.c':
@@ -224,7 +292,7 @@ for root in ('include','src','test'):
                 in_record=True
             if in_record and stripped.startswith('}'):
                 in_record=False
-            if in_record and stripped and not stripped.startswith(('/', '*','{','#','typedef')) and ';' in stripped and '/**<' not in stripped:
+            if in_record and re.match(r'^(?:const\s+)?(?:size_t|uint64_t|double|bool|int|unsigned|char|cfwx_\w+|LogLevel|logger_sink_fn|node|cudaStream_t|void)\b', stripped) and not stripped.startswith(('/', '*','{','#','typedef')) and ';' in stripped and '/**<' not in stripped:
                 # Member-specific comments supplement rather than replace original contracts.
                 line+=' /**< '+('Borrowed pointer or owned storage as specified by the containing type.' if '*' in stripped else 'State/dimension/policy value; see the containing type contract.')+' */'
             elif in_record and re.fullmatch(r'(?:CFWX_\w+|LOG_\w+)\s*(?:=\s*\w+)?\s*,?',stripped) and '/**<' not in stripped:

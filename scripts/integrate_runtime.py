@@ -1,3 +1,8 @@
+## @file scripts/integrate_runtime.py
+# @brief integrate runtime source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotently attach stored dropout masks to analytic training tape and add targets."""
 from pathlib import Path
 p=Path('src/models/training.c');s=p.read_text()

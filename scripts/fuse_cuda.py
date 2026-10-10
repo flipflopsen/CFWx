@@ -1,3 +1,8 @@
+## @file scripts/fuse_cuda.py
+# @brief fuse cuda source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Static CUDA source transformation only. Does NOT compile/probe/execute GPU code."""
 from pathlib import Path
 p=Path('src/gpu/cuda_training.cu');s=p.read_text()

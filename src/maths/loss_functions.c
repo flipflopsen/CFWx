@@ -1,8 +1,25 @@
-/* Implementation and checks for loss functions. */
+/**
+ * @file src/maths/loss_functions.c
+ * @brief loss functions interfaces and implementation.
+ * @ingroup losses
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for loss functions. */
 
 #include "maths/loss_functions.h"
 #include "maths/activation_functions.h"
 
+/**
+ * @anchor api_src_maths_loss_functions_c_cfwx_mse
+ * @brief Compute mean squared error and optional scalar-element-reduced gradient.
+ * @ingroup losses
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_mse include/maths/loss_functions.h
+ */
 cfwx_status cfwx_mse(const double *p, const double *t, size_t n, double *loss, double *g)
 {
     /* Mean scalar-element reduction also determines the gradient scaling. */
@@ -25,6 +42,14 @@ cfwx_status cfwx_mse(const double *p, const double *t, size_t n, double *loss, d
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_maths_loss_functions_c_cfwx_cross_entropy_logits
+ * @brief Compute stable categorical cross entropy and optional logit gradient.
+ * @ingroup losses
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cross_entropy_logits include/maths/loss_functions.h
+ */
 cfwx_status cfwx_cross_entropy_logits(const double *x, size_t n, size_t label, double *loss,
                                       double *g)
 {
@@ -57,6 +82,14 @@ cfwx_status cfwx_cross_entropy_logits(const double *x, size_t n, size_t label, d
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_maths_loss_functions_c_cfwx_bce_logits
+ * @brief Compute stable mean binary cross entropy from logits.
+ * @ingroup losses
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_bce_logits include/maths/loss_functions.h
+ */
 cfwx_status cfwx_bce_logits(const double *x, const double *t, size_t n, double *loss, double *g)
 {
     /* Stable softplus handles large logits; fractional targets are permitted in [0,1]. */

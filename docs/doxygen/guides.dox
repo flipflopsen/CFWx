@@ -153,8 +153,8 @@
  * comprehensive, but extraction alone is not proof of correct comments. Header
  * contracts remain the canonical source for public functions; definitions copy them.
  * @section doc_style Comment convention
- * Use @file, @brief, @details, @ingroup, @param, @return, @pre, @post, @warning,
- * @note and @see where appropriate. Preserve exact shapes and output mutation
+ * Use file, brief, details, ingroup, param, return, pre, post, warning commands,
+ * note and see commands where appropriate. Preserve exact shapes and output mutation
  * guarantees. Do not invent promises of thread safety, rollback, GPU validation,
  * parameter direction or numerical precision from symbol names alone. Existing
  * explanatory ordinary comments remain visible in source browsing.

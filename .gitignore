@@ -5,3 +5,5 @@ build-*/
 log/*.log
 *.ckpt
 *.ckpt.tmp
+
+build-docs/

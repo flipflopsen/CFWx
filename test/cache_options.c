@@ -1,4 +1,13 @@
-/* Fixed/sliding cache limits, absolute positions, failed append rollback and reset. */
+/**
+ * @file test/cache_options.c
+ * @brief cache options interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Fixed/sliding cache limits, absolute positions, failed append rollback and reset. */
 #include "models/runtime.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +21,19 @@
             exit(1);                                                                               \
         }                                                                                          \
     } while (0)
+/** @def OK
+ * @brief ok macro; see expansion and module contract.
+ */
 #define OK(x) CHECK((x) == CFWX_OK)
+/**
+ * @anchor api_test_cache_options_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     cfwx_language_model m = {0};

@@ -1,3 +1,8 @@
+## @file scripts/finish_runtime_options.py
+# @brief finish runtime options source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Finalize source integration only; CUDA compilation/execution remains manual."""
 from pathlib import Path
 import re

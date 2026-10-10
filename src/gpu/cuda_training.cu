@@ -1,4 +1,13 @@
-/* SM89-compatible CUDA reference reverse-mode engine.
+/**
+ * @file src/gpu/cuda_training.cu
+ * @brief cuda training interfaces and implementation.
+ * @ingroup gpu
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** SM89-compatible CUDA reference reverse-mode engine.
  * Host constructs symbolic topology, device executes every numerical operation.
  * Sequential tape traversal is intentionally a correctness baseline, not a
  * high-throughput backend. AdamW is parallel. No hardware-property probing. */
@@ -73,6 +82,18 @@ struct cfwx_cuda_model
     uint64_t rng = 0;
 };
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_next_random
+ * @brief Perform the next random operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __device__ static uint64_t next_random(uint64_t &s)
 {
     s += UINT64_C(0x9e3779b97f4a7c15);
@@ -82,7 +103,31 @@ __device__ static uint64_t next_random(uint64_t &s)
     return z ^ (z >> 31);
 }
 
-/* Ordered DAG evaluation. All nodes reside on GPU; no host scalar evaluation. */
+/** Ordered DAG evaluation. All nodes reside on GPU; no host scalar evaluation. */
+/**
+ * @anchor api_src_gpu_cuda_training_cu_forward
+ * @brief Perform the forward operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Ordered DAG evaluation. All nodes reside on GPU; no host scalar evaluation.
+ * @param nodes nodes argument; interpretation follows this operation's implementation and contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param p Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.
+ * @param tokens Borrowed token IDs, laid out as sequence/batch arrays according to this API.
+ * @param width Positive model-feature width divisible by the configured head count.
+ * @param vocabulary Positive vocabulary size or count of classes.
+ * @param training Training/evaluation mode; evaluation disables dropout and parameter updates.
+ * @param rng Borrowed mutable RNG state; consult the operation contract for consumption/replay rules.
+ * @param dropmask dropmask argument; interpretation follows this operation's implementation and contract.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void forward(const Node *nodes, size_t n, double *v, const double *p,
                                const size_t *tokens, size_t width, size_t vocabulary, bool training,
                                uint64_t rng, double *dropmask, int *status)
@@ -157,6 +202,28 @@ __global__ static void forward(const Node *nodes, size_t n, double *v, const dou
     }
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_backward
+ * @brief Perform the backward operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param nodes nodes argument; interpretation follows this operation's implementation and contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param dp dp argument; interpretation follows this operation's implementation and contract.
+ * @param tokens Borrowed token IDs, laid out as sequence/batch arrays according to this API.
+ * @param width Positive model-feature width divisible by the configured head count.
+ * @param parameter_count parameter_count argument; interpretation follows this operation's implementation and contract.
+ * @param training Training/evaluation mode; evaluation disables dropout and parameter updates.
+ * @param dropmask dropmask argument; interpretation follows this operation's implementation and contract.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void backward(const Node *nodes, size_t n, const double *v, double *g, double *dp,
                                 const size_t *tokens, size_t width, size_t parameter_count,
                                 bool training, const double *dropmask, int *status)
@@ -235,6 +302,30 @@ __global__ static void backward(const Node *nodes, size_t n, const double *v, do
         }
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_fused_forward
+ * @brief Perform the fused forward operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param nodes nodes argument; interpretation follows this operation's implementation and contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param segments segments argument; interpretation follows this operation's implementation and contract.
+ * @param batch Positive number of independent sequences; reduction semantics are specified by the API.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param p Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.
+ * @param tokens Borrowed token IDs, laid out as sequence/batch arrays according to this API.
+ * @param width Positive model-feature width divisible by the configured head count.
+ * @param vocabulary Positive vocabulary size or count of classes.
+ * @param training Training/evaluation mode; evaluation disables dropout and parameter updates.
+ * @param rng Borrowed mutable RNG state; consult the operation contract for consumption/replay rules.
+ * @param dropmask dropmask argument; interpretation follows this operation's implementation and contract.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void fused_forward(const Node *nodes, size_t n, const Segment *segments,
                                      size_t batch, double *v, const double *p, const size_t *tokens,
                                      size_t width, size_t vocabulary, bool training, uint64_t rng,
@@ -312,6 +403,30 @@ __global__ static void fused_forward(const Node *nodes, size_t n, const Segment 
     }
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_fused_backward
+ * @brief Compute analytic adjoints for fused.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param nodes nodes argument; interpretation follows this operation's implementation and contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param segments segments argument; interpretation follows this operation's implementation and contract.
+ * @param batch Positive number of independent sequences; reduction semantics are specified by the API.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param dp dp argument; interpretation follows this operation's implementation and contract.
+ * @param tokens Borrowed token IDs, laid out as sequence/batch arrays according to this API.
+ * @param width Positive model-feature width divisible by the configured head count.
+ * @param parameter_count parameter_count argument; interpretation follows this operation's implementation and contract.
+ * @param training Training/evaluation mode; evaluation disables dropout and parameter updates.
+ * @param dropmask dropmask argument; interpretation follows this operation's implementation and contract.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void fused_backward(const Node *nodes, size_t n, const Segment *segments,
                                       size_t batch, const double *v, double *g, double *dp,
                                       const size_t *tokens, size_t width, size_t parameter_count,
@@ -385,8 +500,25 @@ __global__ static void fused_backward(const Node *nodes, size_t n, const Segment
     }
 }
 
-/* Loss reduction is separate from sequence graphs: reverse does not traverse
+/** Loss reduction is separate from sequence graphs: reverse does not traverse
  * the final serial reduction, avoiding duplicate gradient contributions. */
+/**
+ * @anchor api_src_gpu_cuda_training_cu_fused_loss
+ * @brief Perform the fused loss operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Loss reduction is separate from sequence graphs: reverse does not traverse the final serial reduction, avoiding duplicate gradient contributions.
+ * @param values Borrowed numerical values to import or process; length must match the supplied count.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param segments segments argument; interpretation follows this operation's implementation and contract.
+ * @param batch Positive number of independent sequences; reduction semantics are specified by the API.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void fused_loss(double *values, size_t n, const Segment *segments, size_t batch)
 {
     if (blockIdx.x || threadIdx.x)
@@ -397,6 +529,21 @@ __global__ static void fused_loss(double *values, size_t n, const Segment *segme
     values[n - 1] = sum / (double)batch;
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_clip_gradients
+ * @brief Perform the clip gradients operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param maximum maximum argument; interpretation follows this operation's implementation and contract.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void clip_gradients(double *g, size_t n, double maximum, int *status)
 {
     if (blockIdx.x || threadIdx.x || *status)
@@ -413,6 +560,26 @@ __global__ static void clip_gradients(double *g, size_t n, double maximum, int *
     for (size_t i = 0; i < n; i++)
         g[i] *= scale;
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_adam
+ * @brief Perform the adam operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param p Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param m Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @param step step argument; interpretation follows this operation's implementation and contract.
+ * @param rate Optimizer learning rate; zero is allowed only by APIs documenting gradient-only execution.
+ * @param decay Finite nonnegative decoupled weight-decay coefficient.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 __global__ static void adam(double *p, const double *g, double *m, double *v, size_t n, size_t step,
                             double rate, double decay, int *status)
 {
@@ -433,17 +600,55 @@ __global__ static void adam(double *p, const double *g, double *m, double *v, si
     v[i] = second;
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cuda_check
+ * @brief Perform the cuda check operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param status status argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static void cuda_check(cudaError_t status)
 {
     if (status != cudaSuccess)
         throw std::runtime_error(cudaGetErrorString(status));
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_product
+ * @brief Perform the product operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param a First borrowed numerical operand or internal node/state as declared.
+ * @param b Second borrowed numerical operand or internal node/state as declared.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static size_t product(size_t a, size_t b)
 {
     if (!a || !b || a > SIZE_MAX / b)
         throw std::runtime_error("dimension overflow");
     return a * b;
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_parameter
+ * @brief Perform the parameter operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param m Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static size_t parameter(cfwx_cuda_model &m, size_t n, double value = 0.0)
 {
     if (n > m.config.device_budget_bytes / 32 ||
@@ -453,6 +658,18 @@ static size_t parameter(cfwx_cuda_model &m, size_t n, double value = 0.0)
     m.initial.resize(offset + n, value);
     return offset;
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_host_rng
+ * @brief Perform the host rng operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static uint64_t host_rng(uint64_t &s)
 {
     s += UINT64_C(0x9e3779b97f4a7c15);
@@ -461,6 +678,21 @@ static uint64_t host_rng(uint64_t &s)
     z = (z ^ (z >> 27)) * UINT64_C(0x94d049bb133111eb);
     return z ^ (z >> 31);
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_init_dense
+ * @brief Perform the init dense operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param m Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param in in argument; interpretation follows this operation's implementation and contract.
+ * @param out Caller-supplied output storage; allocate its required shape before calling. Constructor APIs instead receive an owner destination.
+ * @param seed Caller-supplied pseudorandom initialization seed or mutable RNG state; noncryptographic.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static Dense init_dense(cfwx_cuda_model &m, size_t in, size_t out, uint64_t &seed)
 {
     Dense d{in, out, parameter(m, product(in, out)), parameter(m, out)};
@@ -476,6 +708,18 @@ struct Graph
     std::vector<Node> nodes;
     std::vector<Segment> segments;
     uint64_t rng_offset = 0;
+/**
+ * @anchor api_src_gpu_cuda_training_cu_add
+ * @brief Perform the add operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param op op argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
     int add(int op, int a = -1, int b = -1, double value = 0.0)
     {
         if (nodes.size() >= model.config.max_nodes || nodes.size() >= INT_MAX)
@@ -483,10 +727,34 @@ struct Graph
         nodes.push_back(Node{op, a, b, value});
         return (int)nodes.size() - 1;
     }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_constant
+ * @brief Perform the constant operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
     int constant(double x)
     {
         return add(CONSTANT, -1, -1, x);
     }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_p
+ * @brief Perform the p operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param index index argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
     int p(size_t index)
     {
         if (index > INT_MAX)
@@ -536,6 +804,18 @@ struct Graph
             y[j] = add(ADD, x[j], add(DROP, branch[j], -1, model.config.dropout));
         return y;
     }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_build
+ * @brief Perform the build operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param targets Borrowed next-token targets; SIZE_MAX is ignored only where the loss API explicitly supports it.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
     void build(const size_t *targets)
     {
         size_t width = model.config.width, T = model.config.context, heads = model.config.heads,
@@ -627,14 +907,44 @@ struct Graph
     }
 };
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_error
+ * @brief Perform the cuda error operation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_error include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" const char *cfwx_cuda_error(const cfwx_cuda_model *m)
 {
     return m ? m->error.c_str() : "NULL CUDA model";
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_parameter_count
+ * @brief Perform the cuda parameter count operation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_parameter_count include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" size_t cfwx_cuda_parameter_count(const cfwx_cuda_model *m)
 {
     return m ? m->count : 0;
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_free
+ * @brief Release owned cuda storage and reset its owner.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_free include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" void cfwx_cuda_free(cfwx_cuda_model *m)
 {
     if (!m)
@@ -656,6 +966,16 @@ extern "C" void cfwx_cuda_free(cfwx_cuda_model *m)
         cudaStreamDestroy(m->stream);
     delete m;
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_create
+ * @brief Create the opt-in device reference model and owned CUDA resources.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_create include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_create(const cfwx_cuda_config *c, cfwx_cuda_model **out, char *error,
                                 size_t capacity)
 {
@@ -728,6 +1048,16 @@ extern "C" int cfwx_cuda_create(const cfwx_cuda_config *c, cfwx_cuda_model **out
         return 1;
     }
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_run
+ * @brief Execute the device batch objective and optional analytic update.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_run include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_run(cfwx_cuda_model *m, const size_t *ids, const size_t *targets,
                              int training, double rate, double maximum, double decay, double *loss)
 {
@@ -842,6 +1172,21 @@ extern "C" int cfwx_cuda_run(cfwx_cuda_model *m, const size_t *ids, const size_t
         return 1;
     }
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_copy
+ * @brief Perform the copy operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param m Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param host host argument; interpretation follows this operation's implementation and contract.
+ * @param device device argument; interpretation follows this operation's implementation and contract.
+ * @param count Number of entries/elements; must match the associated buffer or registry contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static int copy(cfwx_cuda_model *m, double *host, const double *device, size_t count)
 {
     if (!m || !host || count != m->count || m->poisoned)
@@ -857,14 +1202,44 @@ static int copy(cfwx_cuda_model *m, double *host, const double *device, size_t c
         return 1;
     }
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_get_parameters
+ * @brief Perform the cuda get parameters operation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_get_parameters include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_get_parameters(cfwx_cuda_model *m, double *out, size_t n)
 {
     return copy(m, out, m ? m->parameters : nullptr, n);
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_get_gradients
+ * @brief Perform the cuda get gradients operation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_get_gradients include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_get_gradients(cfwx_cuda_model *m, double *out, size_t n)
 {
     return copy(m, out, m ? m->gradients : nullptr, n);
 }
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_set_parameters
+ * @brief Perform the cuda set parameters operation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_set_parameters include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_set_parameters(cfwx_cuda_model *m, const double *values, size_t n)
 {
     if (!m || !values || n != m->count || m->poisoned)
@@ -884,6 +1259,16 @@ extern "C" int cfwx_cuda_set_parameters(cfwx_cuda_model *m, const double *values
     }
 }
 
+/**
+ * @anchor api_src_gpu_cuda_training_cu_cfwx_cuda_set_fused_batching
+ * @brief Select launch-fused independent-sequence execution rather than serial interpretation.
+ * @ingroup gpu
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_cuda_set_fused_batching include/gpu/cuda_training.h
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 extern "C" int cfwx_cuda_set_fused_batching(cfwx_cuda_model *model, int enabled)
 {
     if (!model || model->poisoned)

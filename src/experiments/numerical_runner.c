@@ -1,4 +1,13 @@
-/* Softmax experiment: independent reference values and normalization checks. */
+/**
+ * @file src/experiments/numerical_runner.c
+ * @brief numerical runner interfaces and implementation.
+ * @ingroup experiments
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Softmax experiment: independent reference values and normalization checks. */
 
 #include <math.h>
 #include <stdio.h>
@@ -7,6 +16,14 @@
 #include "experiments/numerical_runner.h"
 #include "maths/activation_functions.h"
 
+/**
+ * @anchor api_src_experiments_numerical_runner_c_numerical_runner
+ * @brief Perform the numerical runner operation.
+ * @ingroup experiments
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see numerical_runner include/experiments/numerical_runner.h
+ */
 int numerical_runner(const experiment_logger *logger)
 {
     /* Do not construct or take ownership of the experiment's logger. */

@@ -1,4 +1,13 @@
-/* MANUAL ONLY: not built or executed in CPU CI. Named logger remains on host. */
+/**
+ * @file test/cuda_manual.c
+ * @brief cuda manual interfaces and implementation.
+ * @ingroup gpu
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** MANUAL ONLY: not built or executed in CPU CI. Named logger remains on host. */
 #include "gpu/cuda_training.h"
 #include "util/logger.h"
 #include <stdio.h>
@@ -7,6 +16,18 @@
 #include <math.h>
 #include <errno.h>
 
+/**
+ * @anchor api_test_cuda_manual_c_test
+ * @brief Perform the test operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param logger Borrowed initialized experiment logger; name/user data must outlive all calls.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static int test(const experiment_logger *logger)
 {
     cfwx_cuda_config c = {3, 4, 2, 6, 1, 3, 2, 42, 0.0, 1000000, 512 * 1024 * 1024};
@@ -75,6 +96,20 @@ cleanup:
     cfwx_cuda_free(m);
     return result;
 }
+/**
+ * @anchor api_test_cuda_manual_c_train
+ * @brief Perform the train operation.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param logger Borrowed initialized experiment logger; name/user data must outlive all calls.
+ * @param path File path used by the operation; checkpoint publication requires a writable parent directory.
+ * @param steps Positive number of requested optimizer updates.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 static int train(const experiment_logger *logger, const char *path, size_t steps)
 {
     FILE *f = fopen(path, "rb");
@@ -161,6 +196,19 @@ static int train(const experiment_logger *logger, const char *path, size_t steps
     free(data);
     return result;
 }
+/**
+ * @anchor api_test_cuda_manual_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup gpu
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param argc Number of process arguments including argv[0].
+ * @param argv Process argument strings; the legacy parser may terminate on help/error.
+ * @return Computed value or status described by the adjacent contract.
+ * @warning CUDA source remains manually validated only. Doxygen parses this
+ * symbol without running nvcc, CUDA kernels or hardware probes.
+ */
 int main(int argc, char **argv)
 {
     experiment_logger logger;

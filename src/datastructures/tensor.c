@@ -1,7 +1,29 @@
-/* Implementation and checks for tensor. */
+/**
+ * @file src/datastructures/tensor.c
+ * @brief tensor interfaces and implementation.
+ * @ingroup containers
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for tensor. */
 
 #include "datastructures/tensor.h"
 
+/**
+ * @anchor api_src_datastructures_tensor_c_layout
+ * @brief Perform the layout operation.
+ * @ingroup containers
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param rank Tensor rank; supported range is 1 through CFWX_MAX_RANK.
+ * @param shape Dimension array with rank entries; every dimension must be positive.
+ * @return CFWX_OK on success; otherwise an invalid-argument, shape, allocation
+ * or numerical status as checked by the implementation. Do not consume failed outputs.
+ */
 static cfwx_status layout(cfwx_tensor *t, size_t rank, const size_t *shape)
 {
     /* Reverse dimension traversal constructs contiguous row-major strides. */
@@ -20,6 +42,14 @@ static cfwx_status layout(cfwx_tensor *t, size_t rank, const size_t *shape)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_tensor_c_cfwx_tensor_init
+ * @brief Construct and initialize tensor state.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_tensor_init include/datastructures/tensor.h
+ */
 cfwx_status cfwx_tensor_init(cfwx_tensor *t, size_t rank, const size_t *shape)
 {
     /* Temporary metadata leaves ownership unchanged on allocation failure. */
@@ -37,6 +67,14 @@ cfwx_status cfwx_tensor_init(cfwx_tensor *t, size_t rank, const size_t *shape)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_tensor_c_cfwx_tensor_free
+ * @brief Release owned tensor storage and reset its owner.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_tensor_free include/datastructures/tensor.h
+ */
 void cfwx_tensor_free(cfwx_tensor *t)
 {
     if (t)
@@ -46,6 +84,14 @@ void cfwx_tensor_free(cfwx_tensor *t)
     }
 }
 
+/**
+ * @anchor api_src_datastructures_tensor_c_cfwx_tensor_offset
+ * @brief Check tensor indices and compute a contiguous-storage offset.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_tensor_offset include/datastructures/tensor.h
+ */
 cfwx_status cfwx_tensor_offset(const cfwx_tensor *t, const size_t *idx, size_t *offset)
 {
     if (!t || !t->data || !idx || !offset)
@@ -61,6 +107,14 @@ cfwx_status cfwx_tensor_offset(const cfwx_tensor *t, const size_t *idx, size_t *
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_tensor_c_cfwx_tensor_reshape
+ * @brief Replace tensor metadata while preserving element count and allocation.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_tensor_reshape include/datastructures/tensor.h
+ */
 cfwx_status cfwx_tensor_reshape(cfwx_tensor *t, size_t rank, const size_t *shape)
 {
     /* Reshape preserves the allocation and total element count. */

@@ -1,3 +1,8 @@
+## @file scripts/polish_doxygen.py
+# @brief polish doxygen source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Source-only annotation quality improvements; does not execute CUDA or models."""
 from pathlib import Path
 p=Path('scripts/document_repository.py');s=p.read_text()

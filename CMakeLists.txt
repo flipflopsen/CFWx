@@ -267,3 +267,6 @@ if(BUILD_TESTING)
         set_property(TARGET cfwx_cache_options APPEND_STRING PROPERTY LINK_FLAGS " -fsanitize=address,undefined")
     endif()
 endif()
+
+# Documentation is additive and never requires configuring CUDA.
+include(cmake/doxygen.cmake)

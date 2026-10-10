@@ -1,3 +1,8 @@
+## @file scripts/integrate_transformer.py
+# @brief integrate transformer source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotently register Transformer tests and examples without replacing the original build."""
 from pathlib import Path
 p=Path('CMakeLists.txt');s=p.read_text()

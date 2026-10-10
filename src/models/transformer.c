@@ -1,25 +1,84 @@
-/* Modular Transformer reference kernels; numerical status propagation and
+/**
+ * @file src/models/transformer.c
+ * @brief transformer interfaces and implementation.
+ * @ingroup transformer
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Modular Transformer reference kernels; numerical status propagation and
  * explicit temporary ownership keep experiments independent of the backend. */
 #include "models/transformer.h"
 #include <string.h>
 #include <float.h>
 
+/**
+ * @anchor api_src_models_transformer_c_valid
+ * @brief Perform the valid operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool valid(const cfwx_matrix *x)
 {
     size_t n;
     return x && x->data && cfwx_count(x->rows, x->cols, &n);
 }
 
+/**
+ * @anchor api_src_models_transformer_c_same
+ * @brief Perform the same operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param a First borrowed numerical operand or internal node/state as declared.
+ * @param b Second borrowed numerical operand or internal node/state as declared.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool same(const cfwx_matrix *a, const cfwx_matrix *b)
 {
     return valid(a) && valid(b) && a->rows == b->rows && a->cols == b->cols;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_activation_valid
+ * @brief Perform the activation valid operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param kind kind argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool activation_valid(cfwx_activation kind)
 {
     return kind >= CFWX_ACT_IDENTITY && kind <= CFWX_ACT_SIGMOID;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_activation_value
+ * @brief Perform the activation value operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param kind kind argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static double activation_value(double x, cfwx_activation kind)
 {
     switch (kind)
@@ -39,6 +98,19 @@ static double activation_value(double x, cfwx_activation kind)
     }
 }
 
+/**
+ * @anchor api_src_models_transformer_c_activation_derivative
+ * @brief Perform the activation derivative operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param kind kind argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static double activation_derivative(double x, cfwx_activation kind)
 {
     switch (kind)
@@ -61,6 +133,16 @@ static double activation_derivative(double x, cfwx_activation kind)
     }
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_activate
+ * @brief Perform the activate operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_activate include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_activate(const cfwx_matrix *x, cfwx_activation kind, cfwx_matrix *out)
 {
     if (!same(x, out) || !activation_valid(kind))
@@ -77,6 +159,16 @@ cfwx_status cfwx_activate(const cfwx_matrix *x, cfwx_activation kind, cfwx_matri
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_activate_backward
+ * @brief Compute analytic adjoints for activate.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_activate_backward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_activate_backward(const cfwx_matrix *x, const cfwx_matrix *dy,
                                    cfwx_activation kind, cfwx_matrix *dx)
 {
@@ -94,6 +186,16 @@ cfwx_status cfwx_activate_backward(const cfwx_matrix *x, const cfwx_matrix *dy,
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_residual_add
+ * @brief Perform the residual add operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_residual_add include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_residual_add(const cfwx_matrix *a, const cfwx_matrix *b, cfwx_matrix *out)
 {
     if (!same(a, b) || !same(a, out))
@@ -108,7 +210,21 @@ cfwx_status cfwx_residual_add(const cfwx_matrix *a, const cfwx_matrix *b, cfwx_m
     return CFWX_OK;
 }
 
-/* SplitMix64: deterministic local pseudorandomness, not cryptographic. */
+/** SplitMix64: deterministic local pseudorandomness, not cryptographic. */
+/**
+ * @anchor api_src_models_transformer_c_uniform
+ * @brief Perform the uniform operation.
+ * @ingroup transformer
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * SplitMix64: deterministic local pseudorandomness, not cryptographic.
+ * @param seed Caller-supplied pseudorandom initialization seed or mutable RNG state; noncryptographic.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static double uniform(uint64_t *seed)
 {
     *seed += UINT64_C(0x9e3779b97f4a7c15);
@@ -118,6 +234,16 @@ static double uniform(uint64_t *seed)
     return (double)((z ^ (z >> 31)) >> 11) * 0x1.0p-53;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_dropout
+ * @brief Perform the dropout operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dropout include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_dropout(const cfwx_matrix *x, double p, bool training, uint64_t *seed,
                          cfwx_matrix *out, cfwx_matrix *mask)
 {
@@ -139,6 +265,16 @@ cfwx_status cfwx_dropout(const cfwx_matrix *x, double p, bool training, uint64_t
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_dropout_backward
+ * @brief Compute analytic adjoints for dropout.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dropout_backward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_dropout_backward(const cfwx_matrix *dy, const cfwx_matrix *mask, cfwx_matrix *dx)
 {
     if (!same(dy, mask) || !same(dy, dx))
@@ -153,11 +289,31 @@ cfwx_status cfwx_dropout_backward(const cfwx_matrix *dy, const cfwx_matrix *mask
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_linear
+ * @brief Perform the linear operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_linear include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_linear(const cfwx_matrix *x, const cfwx_matrix *weights, cfwx_matrix *out)
 {
     return cfwx_matrix_multiply(x, weights, out);
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_embedding
+ * @brief Perform the embedding operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_embedding include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_embedding(const cfwx_matrix *table, const size_t *ids, size_t count,
                            cfwx_matrix *out)
 {
@@ -179,6 +335,16 @@ cfwx_status cfwx_embedding(const cfwx_matrix *table, const size_t *ids, size_t c
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_embedding_backward
+ * @brief Compute analytic adjoints for embedding.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_embedding_backward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_embedding_backward(const size_t *ids, size_t count, const cfwx_matrix *dy,
                                     cfwx_matrix *gradient)
 {
@@ -201,6 +367,16 @@ cfwx_status cfwx_embedding_backward(const size_t *ids, size_t count, const cfwx_
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_sinusoidal_positions
+ * @brief Perform the sinusoidal positions operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_sinusoidal_positions include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_sinusoidal_positions(size_t offset, cfwx_matrix *out)
 {
     if (!valid(out) || offset > SIZE_MAX - (out->rows - 1))
@@ -215,6 +391,16 @@ cfwx_status cfwx_sinusoidal_positions(size_t offset, cfwx_matrix *out)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_rope
+ * @brief Perform the rope operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_rope include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_rope(const cfwx_matrix *x, size_t offset, double base, cfwx_matrix *out)
 {
     if (!same(x, out) || x->cols % 2 || !isfinite(base) || base <= 1.0 ||
@@ -235,6 +421,16 @@ cfwx_status cfwx_rope(const cfwx_matrix *x, size_t offset, double base, cfwx_mat
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_rms_norm
+ * @brief Perform the rms norm operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_rms_norm include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_rms_norm(const cfwx_matrix *x, const double *gamma, double epsilon,
                           cfwx_matrix *out)
 {
@@ -264,6 +460,16 @@ cfwx_status cfwx_rms_norm(const cfwx_matrix *x, const double *gamma, double epsi
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_masked_attention
+ * @brief Perform the masked attention operation.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_masked_attention include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_masked_attention(const cfwx_matrix *q, const cfwx_matrix *k, const cfwx_matrix *v,
                                   const bool *mask, const cfwx_matrix *bias, bool causal,
                                   cfwx_matrix *out, cfwx_matrix *probabilities)
@@ -348,6 +554,16 @@ cleanup:
     return status;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_multihead_free
+ * @brief Release owned multihead storage and reset its owner.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_multihead_free include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_multihead_free(cfwx_multihead *layer)
 {
     if (!layer)
@@ -359,6 +575,16 @@ void cfwx_multihead_free(cfwx_multihead *layer)
     *layer = (cfwx_multihead){0};
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_multihead_init
+ * @brief Construct and initialize multihead state.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_multihead_init include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_multihead_init(cfwx_multihead *layer, size_t width, size_t heads, uint64_t seed)
 {
     if (!layer || layer->width || layer->heads || layer->query.weights.data ||
@@ -382,6 +608,16 @@ cfwx_status cfwx_multihead_init(cfwx_multihead *layer, size_t width, size_t head
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_multihead_forward
+ * @brief Project Q/K/V, evaluate independent heads, concatenate and project outputs.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_multihead_forward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_multihead_forward(const cfwx_multihead *layer, const cfwx_matrix *query,
                                    const cfwx_matrix *context, const bool *mask, bool causal,
                                    cfwx_matrix *out)
@@ -439,6 +675,16 @@ cleanup:
     return s;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_feedforward_free
+ * @brief Release owned feedforward storage and reset its owner.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_feedforward_free include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_feedforward_free(cfwx_feedforward *layer)
 {
     if (!layer)
@@ -449,6 +695,16 @@ void cfwx_feedforward_free(cfwx_feedforward *layer)
     *layer = (cfwx_feedforward){0};
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_feedforward_init
+ * @brief Construct and initialize feedforward state.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_feedforward_init include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_feedforward_init(cfwx_feedforward *layer, size_t width, size_t hidden,
                                   cfwx_activation activation, bool gated, uint64_t seed)
 {
@@ -472,6 +728,16 @@ cfwx_status cfwx_feedforward_init(cfwx_feedforward *layer, size_t width, size_t 
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_feedforward_forward
+ * @brief Evaluate the configured ungated or gated feed-forward block.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_feedforward_forward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_feedforward_forward(const cfwx_feedforward *layer, const cfwx_matrix *x,
                                      cfwx_matrix *out)
 {
@@ -508,6 +774,16 @@ cleanup:
     return s;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_transformer_block_free
+ * @brief Release owned transformer block storage and reset its owner.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_transformer_block_free include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_transformer_block_free(cfwx_transformer_block *block)
 {
     if (!block)
@@ -521,6 +797,16 @@ void cfwx_transformer_block_free(cfwx_transformer_block *block)
     *block = (cfwx_transformer_block){0};
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_transformer_block_init
+ * @brief Construct and initialize transformer block state.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_transformer_block_init include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_transformer_block_init(cfwx_transformer_block *block, size_t width, size_t heads,
                                         size_t hidden, uint64_t seed)
 {
@@ -546,6 +832,16 @@ cfwx_status cfwx_transformer_block_init(cfwx_transformer_block *block, size_t wi
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_transformer_block_forward
+ * @brief Evaluate both pre-LayerNorm residual branches of a Transformer block.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_transformer_block_forward include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_transformer_block_forward(const cfwx_transformer_block *block,
                                            const cfwx_matrix *x, const bool *mask, bool causal,
                                            cfwx_matrix *out)
@@ -580,6 +876,16 @@ cfwx_status cfwx_transformer_block_forward(const cfwx_transformer_block *block,
     return s;
 }
 
+/**
+ * @anchor api_src_models_transformer_c_cfwx_token_cross_entropy
+ * @brief Compute token-mean categorical loss with ignore labels and smoothing.
+ * @ingroup transformer
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_token_cross_entropy include/models/transformer.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_token_cross_entropy(const cfwx_matrix *logits, const size_t *labels,
                                      size_t ignore_label, double smoothing, double *loss,
                                      cfwx_matrix *gradient)

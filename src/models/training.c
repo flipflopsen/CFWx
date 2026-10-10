@@ -1,4 +1,13 @@
-/* Local analytic reverse-mode tape. Each node owns activation and adjoint.
+/**
+ * @file src/models/training.c
+ * @brief training interfaces and implementation.
+ * @ingroup training
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Local analytic reverse-mode tape. Each node owns activation and adjoint.
  * Fan-out accumulates adjoints, including shared self-attention Q/K/V inputs.
  * Recompute trades speed for a simple API with no stale external cache. */
 #include "models/training.h"
@@ -6,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** @brief Record/enumeration used by this module; member contracts describe storage and policy. */
 typedef enum
 {
     LEAF,
@@ -21,31 +31,50 @@ typedef enum
     EMBED,
     DROPOUT
 } operation;
+/** @brief Record/enumeration used by this module; member contracts describe storage and policy. */
 typedef struct node node;
 struct node
 {
-    cfwx_matrix value, grad;
+    cfwx_matrix value, grad; /**< State/dimension/policy value; see the containing type contract. */
     operation op;
-    node *a, *b, *c, *d;
-    double *destination;
-    size_t start;
-    double epsilon;
-    double *dropout_mask;
-    bool rms, causal;
-    cfwx_activation activation;
-    const bool *mask;
-    const size_t *tokens;
+    node *a, *b, *c, *d; /**< Borrowed pointer or owned storage as specified by the containing type. */
+    double *destination; /**< Borrowed pointer or owned storage as specified by the containing type. */
+    size_t start; /**< State/dimension/policy value; see the containing type contract. */
+    double epsilon; /**< State/dimension/policy value; see the containing type contract. */
+    double *dropout_mask; /**< Borrowed pointer or owned storage as specified by the containing type. */
+    bool rms, causal; /**< State/dimension/policy value; see the containing type contract. */
+    cfwx_activation activation; /**< State/dimension/policy value; see the containing type contract. */
+    const bool *mask; /**< Borrowed pointer or owned storage as specified by the containing type. */
+    const size_t *tokens; /**< Borrowed pointer or owned storage as specified by the containing type. */
 };
+/** @def MAX_NODES
+ * @brief max nodes macro; see expansion and module contract.
+ */
 #define MAX_NODES 2048
+/** @brief Record/enumeration used by this module; member contracts describe storage and policy. */
 typedef struct
 {
-    node *nodes[MAX_NODES];
-    size_t count;
-    cfwx_status status;
-    double dropout;
-    uint64_t *rng;
+    node *nodes[MAX_NODES]; /**< Borrowed pointer or owned storage as specified by the containing type. */
+    size_t count; /**< State/dimension/policy value; see the containing type contract. */
+    cfwx_status status; /**< State/dimension/policy value; see the containing type contract. */
+    double dropout; /**< State/dimension/policy value; see the containing type contract. */
+    uint64_t *rng; /**< Borrowed pointer or owned storage as specified by the containing type. */
 } tape;
 
+/**
+ * @anchor api_src_models_training_c_shape
+ * @brief Perform the shape operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param rows Positive row count of the owning matrix.
+ * @param cols Positive column/feature count of the owning matrix.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool shape(const cfwx_matrix *x, size_t rows, size_t cols)
 {
     size_t n;
@@ -75,6 +104,18 @@ static node *allocate(tape *t, size_t rows, size_t cols, operation op)
     return t->status == CFWX_OK ? n : NULL;
 }
 
+/**
+ * @anchor api_src_models_training_c_release
+ * @brief Perform the release operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void release(tape *t)
 {
     for (size_t i = 0; i < t->count; i++)
@@ -86,6 +127,22 @@ static void release(tape *t)
     }
 }
 
+/**
+ * @anchor api_src_models_training_c_leaf
+ * @brief Perform the leaf operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param data Borrowed source bytes/numerical storage; valid for the stated count.
+ * @param rows Positive row count of the owning matrix.
+ * @param cols Positive column/feature count of the owning matrix.
+ * @param gradient Architecture/shape-matched preallocated gradient owner; NULL only where explicitly supported.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *leaf(tape *t, const double *data, size_t rows, size_t cols, double *gradient)
 {
     if (!data)
@@ -134,6 +191,20 @@ static node *binary(tape *t, node *a, node *b, operation op)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_activation
+ * @brief Perform the activation operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param kind kind argument; interpretation follows this operation's implementation and contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *activation(tape *t, node *x, cfwx_activation kind)
 {
     if (!x)
@@ -147,6 +218,21 @@ static node *activation(tape *t, node *x, cfwx_activation kind)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_dense
+ * @brief Perform the dense operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param layer Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *dense(tape *t, node *x, const cfwx_dense *layer, cfwx_dense *g)
 {
     /* Perturb weights, biases and inputs to check all backward gradients. */
@@ -179,6 +265,23 @@ static node *dense(tape *t, node *x, const cfwx_dense *layer, cfwx_dense *g)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_normalization
+ * @brief Perform the normalization operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param gamma Feature scale array; one value per feature. Borrowed input storage.
+ * @param beta Feature shift array; one value per feature. Borrowed input storage.
+ * @param eps Positive finite numerical-stability constant, not a trainable parameter.
+ * @param rms rms argument; interpretation follows this operation's implementation and contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *normalization(tape *t, node *x, node *gamma, node *beta, double eps, bool rms)
 {
     if (!x || !gamma || (!rms && !beta))
@@ -202,6 +305,24 @@ static node *normalization(tape *t, node *x, node *gamma, node *beta, double eps
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_head
+ * @brief Perform the head operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param q Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param k Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param bias bias argument; interpretation follows this operation's implementation and contract.
+ * @param mask Optional attention permission mask or dropout multiplier matrix; see operation-specific contract.
+ * @param causal Whether to additionally permit only key positions at or before each query.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *head(tape *t, node *q, node *k, node *v, node *bias, const bool *mask, bool causal)
 {
     if (!q || !k || !v)
@@ -220,6 +341,21 @@ static node *head(tape *t, node *q, node *k, node *v, node *bias, const bool *ma
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_slice
+ * @brief Perform the slice operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param start start argument; interpretation follows this operation's implementation and contract.
+ * @param width Positive model-feature width divisible by the configured head count.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *slice(tape *t, node *x, size_t start, size_t width)
 {
     if (!x)
@@ -235,6 +371,20 @@ static node *slice(tape *t, node *x, size_t start, size_t width)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_join
+ * @brief Perform the join operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param a First borrowed numerical operand or internal node/state as declared.
+ * @param b Second borrowed numerical operand or internal node/state as declared.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *join(tape *t, node *a, node *b)
 {
     if (!a || !b)
@@ -254,6 +404,24 @@ static node *join(tape *t, node *a, node *b)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_multihead
+ * @brief Perform the multihead operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param query Numerical operand or operation state; see the documented mathematical shape and role.
+ * @param context Common context/chunk length in tokens.
+ * @param layer Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param mask Optional attention permission mask or dropout multiplier matrix; see operation-specific contract.
+ * @param causal Whether to additionally permit only key positions at or before each query.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *multihead(tape *t, node *query, node *context, const cfwx_multihead *layer,
                        cfwx_multihead *g, const bool *mask, bool causal)
 {
@@ -276,6 +444,21 @@ static node *multihead(tape *t, node *query, node *context, const cfwx_multihead
     return dense(t, joined, &layer->output, g ? &g->output : NULL);
 }
 
+/**
+ * @anchor api_src_models_training_c_feedforward
+ * @brief Perform the feedforward operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param layer Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *feedforward(tape *t, node *x, const cfwx_feedforward *layer, cfwx_feedforward *g)
 {
     if (!layer)
@@ -300,7 +483,22 @@ static node *feedforward(tape *t, node *x, const cfwx_feedforward *layer, cfwx_f
     return dense(t, a, &layer->down, g ? &g->down : NULL);
 }
 
-/* Store multipliers on the actual graph: backward must reuse the forward mask. */
+/** Store multipliers on the actual graph: backward must reuse the forward mask. */
+/**
+ * @anchor api_src_models_training_c_training_dropout
+ * @brief Perform the training dropout operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Store multipliers on the actual graph: backward must reuse the forward mask.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *training_dropout(tape *t, node *x)
 {
     if (!x || t->dropout == 0.0)
@@ -320,6 +518,23 @@ static node *training_dropout(tape *t, node *x)
     return n;
 }
 
+/**
+ * @anchor api_src_models_training_c_block
+ * @brief Perform the block operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param layer Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @param mask Optional attention permission mask or dropout multiplier matrix; see operation-specific contract.
+ * @param causal Whether to additionally permit only key positions at or before each query.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *block(tape *t, node *x, const cfwx_transformer_block *layer, cfwx_transformer_block *g,
                    const bool *mask, bool causal)
 {
@@ -350,7 +565,22 @@ static node *block(tape *t, node *x, const cfwx_transformer_block *layer, cfwx_t
     return binary(t, residual, training_dropout(t, feedforward_branch), ADD);
 }
 
-/* Reverse one node, accumulating into all parents (never overwrite fan-out). */
+/** Reverse one node, accumulating into all parents (never overwrite fan-out). */
+/**
+ * @anchor api_src_models_training_c_reverse_node
+ * @brief Perform the reverse node operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Reverse one node, accumulating into all parents (never overwrite fan-out).
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param n Element count or owner/internal node as declared; see containing module contracts.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void reverse_node(tape *t, node *n)
 {
     size_t rows = n->value.rows, cols = n->value.cols;
@@ -497,6 +727,21 @@ static void reverse_node(tape *t, node *n)
     }
 }
 
+/**
+ * @anchor api_src_models_training_c_backward
+ * @brief Perform the backward operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param output output argument; interpretation follows this operation's implementation and contract.
+ * @param upstream upstream argument; interpretation follows this operation's implementation and contract.
+ * @return CFWX_OK on success; otherwise an invalid-argument, shape, allocation
+ * or numerical status as checked by the implementation. Do not consume failed outputs.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static cfwx_status backward(tape *t, node *output, const cfwx_matrix *upstream)
 {
     if (t->status != CFWX_OK)
@@ -522,6 +767,16 @@ static cfwx_status backward(tape *t, node *output, const cfwx_matrix *upstream)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_attention_backward
+ * @brief Compute analytic Q/K/V and optional attention-bias gradients.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_attention_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_attention_backward(const cfwx_matrix *q, const cfwx_matrix *k,
                                     const cfwx_matrix *v, const bool *mask, const cfwx_matrix *bias,
                                     bool causal, const cfwx_matrix *dy, cfwx_matrix *dq,
@@ -542,6 +797,26 @@ cfwx_status cfwx_attention_backward(const cfwx_matrix *q, const cfwx_matrix *k,
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_norm_backward
+ * @brief Compute analytic adjoints for norm.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param gamma Feature scale array; one value per feature. Borrowed input storage.
+ * @param eps Positive finite numerical-stability constant, not a trainable parameter.
+ * @param dy Borrowed upstream adjoint; same output shape as the corresponding forward operation.
+ * @param dx Preallocated analytic gradient output; shape matches the corresponding primal.
+ * @param dg Caller-allocated feature-scale gradient output array.
+ * @param db db argument; interpretation follows this operation's implementation and contract.
+ * @param rms rms argument; interpretation follows this operation's implementation and contract.
+ * @return CFWX_OK on success; otherwise an invalid-argument, shape, allocation
+ * or numerical status as checked by the implementation. Do not consume failed outputs.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static cfwx_status norm_backward(const cfwx_matrix *x, const double *gamma, double eps,
                                  const cfwx_matrix *dy, cfwx_matrix *dx, double *dg, double *db,
                                  bool rms)
@@ -563,18 +838,48 @@ static cfwx_status norm_backward(const cfwx_matrix *x, const double *gamma, doub
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_layer_norm_backward
+ * @brief Differentiate population LayerNorm input, scale and shift.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_layer_norm_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_layer_norm_backward(const cfwx_matrix *x, const double *gamma, double eps,
                                      const cfwx_matrix *dy, cfwx_matrix *dx, double *dg, double *db)
 {
     return norm_backward(x, gamma, eps, dy, dx, dg, db, false);
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_rms_norm_backward
+ * @brief Differentiate RMSNorm input and feature scale.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_rms_norm_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_rms_norm_backward(const cfwx_matrix *x, const double *gamma, double eps,
                                    const cfwx_matrix *dy, cfwx_matrix *dx, double *dg)
 {
     return norm_backward(x, gamma, eps, dy, dx, dg, NULL, true);
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_rope_backward
+ * @brief Compute analytic adjoints for rope.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_rope_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_rope_backward(const cfwx_matrix *dy, size_t offset, double base, cfwx_matrix *dx)
 {
     if (!dy || !shape(dx, dy->rows, dy->cols) || dy->cols % 2 || !isfinite(base) || base <= 1.0 ||
@@ -594,6 +899,16 @@ cfwx_status cfwx_rope_backward(const cfwx_matrix *dy, size_t offset, double base
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_multihead_backward
+ * @brief Compute analytic adjoints for multihead.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_multihead_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_multihead_backward(const cfwx_multihead *layer, const cfwx_matrix *q,
                                     const cfwx_matrix *context, const bool *mask, bool causal,
                                     const cfwx_matrix *dy, cfwx_matrix *dq, cfwx_matrix *dc,
@@ -611,6 +926,16 @@ cfwx_status cfwx_multihead_backward(const cfwx_multihead *layer, const cfwx_matr
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_feedforward_backward
+ * @brief Compute analytic adjoints for feedforward.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_feedforward_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_feedforward_backward(const cfwx_feedforward *layer, const cfwx_matrix *x,
                                       const cfwx_matrix *dy, cfwx_matrix *dx, cfwx_feedforward *g)
 {
@@ -623,6 +948,16 @@ cfwx_status cfwx_feedforward_backward(const cfwx_feedforward *layer, const cfwx_
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_transformer_block_backward
+ * @brief Compute analytic adjoints for transformer block.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_transformer_block_backward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_transformer_block_backward(const cfwx_transformer_block *layer,
                                             const cfwx_matrix *x, const bool *mask, bool causal,
                                             const cfwx_matrix *dy, cfwx_matrix *dx,
@@ -638,6 +973,21 @@ cfwx_status cfwx_transformer_block_backward(const cfwx_transformer_block *layer,
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_parameter
+ * @brief Perform the parameter operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param p Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.
+ * @param data Borrowed source bytes/numerical storage; valid for the stated count.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @return CFWX_OK on success; otherwise an invalid-argument, shape, allocation
+ * or numerical status as checked by the implementation. Do not consume failed outputs.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static cfwx_status parameter(cfwx_parameters *p, double *data, size_t n)
 {
     if (!p || !data || !n || p->count >= CFWX_MAX_PARAMETERS)
@@ -647,6 +997,16 @@ static cfwx_status parameter(cfwx_parameters *p, double *data, size_t n)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_parameters_dense
+ * @brief Perform the parameters dense operation.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_parameters_dense include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_parameters_dense(cfwx_parameters *p, cfwx_dense *l)
 {
     if (!l)
@@ -657,6 +1017,16 @@ cfwx_status cfwx_parameters_dense(cfwx_parameters *p, cfwx_dense *l)
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_parameters_block
+ * @brief Perform the parameters block operation.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_parameters_block include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_parameters_block(cfwx_parameters *p, cfwx_transformer_block *b)
 {
     if (!b)
@@ -674,6 +1044,16 @@ cfwx_status cfwx_parameters_block(cfwx_parameters *p, cfwx_transformer_block *b)
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_clip_gradients
+ * @brief Perform the clip gradients operation.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_clip_gradients include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_clip_gradients(cfwx_parameters *g, double maximum, double *norm)
 {
     if (!g || !norm || !isfinite(maximum) || maximum <= 0 || g->count > CFWX_MAX_PARAMETERS)
@@ -696,6 +1076,16 @@ cfwx_status cfwx_clip_gradients(cfwx_parameters *g, double maximum, double *norm
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_adamw_free
+ * @brief Release owned adamw storage and reset its owner.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_adamw_free include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_adamw_free(cfwx_adamw *o)
 {
     if (!o)
@@ -708,6 +1098,16 @@ void cfwx_adamw_free(cfwx_adamw *o)
     *o = (cfwx_adamw){0};
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_adamw_init
+ * @brief Construct and initialize adamw state.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_adamw_init include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_adamw_init(cfwx_adamw *o, const cfwx_parameters *p)
 {
     if (!o || o->count || !p || !p->count || p->count > CFWX_MAX_PARAMETERS)
@@ -735,6 +1135,16 @@ cfwx_status cfwx_adamw_init(cfwx_adamw *o, const cfwx_parameters *p)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_adamw_step
+ * @brief Apply one global AdamW update with bias-corrected moments.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_adamw_step include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_adamw_step(cfwx_adamw *o, cfwx_parameters *p, const cfwx_parameters *g,
                             double rate, double b1, double b2, double eps, double decay)
 {
@@ -772,6 +1182,16 @@ cfwx_status cfwx_adamw_step(cfwx_adamw *o, cfwx_parameters *p, const cfwx_parame
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_language_model_free
+ * @brief Release owned language model storage and reset its owner.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_free include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_language_model_free(cfwx_language_model *m)
 {
     if (!m)
@@ -785,6 +1205,16 @@ void cfwx_language_model_free(cfwx_language_model *m)
     *m = (cfwx_language_model){0};
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_language_model_init
+ * @brief Construct and initialize language model state.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_init include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_init(cfwx_language_model *m, size_t vocab, size_t width,
                                      size_t heads, size_t hidden, size_t depth, uint64_t seed)
 {
@@ -821,6 +1251,16 @@ cfwx_status cfwx_language_model_init(cfwx_language_model *m, size_t vocab, size_
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_parameters_language_model
+ * @brief Perform the parameters language model operation.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_parameters_language_model include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_parameters_language_model(cfwx_parameters *p, cfwx_language_model *m)
 {
     if (!m || !m->depth || m->depth > CFWX_MAX_BLOCKS)
@@ -837,6 +1277,22 @@ cfwx_status cfwx_parameters_language_model(cfwx_parameters *p, cfwx_language_mod
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_language
+ * @brief Perform the language operation.
+ * @ingroup training
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param t t argument as declared; use the adjacent contract for storage, count and input/output role.
+ * @param m Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param ids Borrowed token/index array with one entry per sequence position; validate against vocabulary/table bounds.
+ * @param length Number of sequence positions/tokens processed by this call.
+ * @param g Gradient record or internal operand as declared; shape/reduction follows this operation contract.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static node *language(tape *t, const cfwx_language_model *m, const size_t *ids, size_t length,
                       cfwx_language_model *g)
 {
@@ -877,6 +1333,16 @@ static node *language(tape *t, const cfwx_language_model *m, const size_t *ids, 
     return dense(t, normalization(t, x, gamma, beta, 1e-5, false), &m->head, g ? &g->head : NULL);
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_language_model_forward
+ * @brief Perform the language model forward operation.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_forward include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_forward(const cfwx_language_model *m, const size_t *ids,
                                         size_t length, cfwx_matrix *logits)
 {
@@ -891,6 +1357,16 @@ cfwx_status cfwx_language_model_forward(const cfwx_language_model *m, const size
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_language_model_loss_training
+ * @brief Evaluate/differentiate a language model with replayed residual dropout masks.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_loss_training include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_loss_training(const cfwx_language_model *m, const size_t *ids,
                                               const size_t *targets, size_t length, double dropout,
                                               uint64_t *rng, double *loss, cfwx_language_model *g)
@@ -916,6 +1392,16 @@ cfwx_status cfwx_language_model_loss_training(const cfwx_language_model *m, cons
     return s;
 }
 
+/**
+ * @anchor api_src_models_training_c_cfwx_language_model_loss
+ * @brief Evaluate token loss and optionally differentiate all CPU language-model parameters.
+ * @ingroup training
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_loss include/models/training.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_loss(const cfwx_language_model *model, const size_t *tokens,
                                      const size_t *targets, size_t length, double *loss,
                                      cfwx_language_model *gradient)

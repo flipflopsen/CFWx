@@ -1,7 +1,24 @@
-/* Implementation and checks for neuron. */
+/**
+ * @file src/datastructures/neuron.c
+ * @brief neuron interfaces and implementation.
+ * @ingroup containers
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for neuron. */
 
 #include "datastructures/neuron.h"
 
+/**
+ * @anchor api_src_datastructures_neuron_c_cfwx_neuron_init
+ * @brief Construct and initialize neuron state.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_neuron_init include/datastructures/neuron.h
+ */
 cfwx_status cfwx_neuron_init(cfwx_neuron *n, size_t inputs)
 {
     if (!n)
@@ -12,6 +29,14 @@ cfwx_status cfwx_neuron_init(cfwx_neuron *n, size_t inputs)
     return s;
 }
 
+/**
+ * @anchor api_src_datastructures_neuron_c_cfwx_neuron_free
+ * @brief Release owned neuron storage and reset its owner.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_neuron_free include/datastructures/neuron.h
+ */
 void cfwx_neuron_free(cfwx_neuron *n)
 {
     if (n)
@@ -21,6 +46,14 @@ void cfwx_neuron_free(cfwx_neuron *n)
     }
 }
 
+/**
+ * @anchor api_src_datastructures_neuron_c_cfwx_neuron_forward
+ * @brief Perform the neuron forward operation.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_neuron_forward include/datastructures/neuron.h
+ */
 cfwx_status cfwx_neuron_forward(const cfwx_neuron *n, const cfwx_vector *x, double *out)
 {
     if (!n || !out)

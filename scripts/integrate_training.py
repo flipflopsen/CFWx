@@ -1,3 +1,8 @@
+## @file scripts/integrate_training.py
+# @brief integrate training source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotently integrate trainable Transformer tests and preserve original CMake."""
 from pathlib import Path
 import runpy

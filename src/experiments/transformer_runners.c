@@ -1,15 +1,42 @@
-/* Logged examples: tiny causal language model and cross-attention + SwiGLU.
+/**
+ * @file src/experiments/transformer_runners.c
+ * @brief transformer runners interfaces and implementation.
+ * @ingroup experiments
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Logged examples: tiny causal language model and cross-attention + SwiGLU.
  * Random weights demonstrate wiring, not meaningful language predictions. */
 #include "experiments/transformer_runners.h"
 #include "models/transformer.h"
 #include <stdlib.h>
 
+/**
+ * @anchor api_src_experiments_transformer_runners_c_valid_logger
+ * @brief Perform the valid logger operation.
+ * @ingroup experiments
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param logger Borrowed initialized experiment logger; name/user data must outlive all calls.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static bool valid_logger(const experiment_logger *logger)
 {
     return logger && logger->experiment_name && logger->experiment_name[0] &&
            logger->minimum_level >= LOG_DEBUG && logger->minimum_level <= LOG_FATAL;
 }
 
+/**
+ * @anchor api_src_experiments_transformer_runners_c_transformer_language_runner
+ * @brief Perform the transformer language runner operation.
+ * @ingroup experiments
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see transformer_language_runner include/experiments/transformer_runners.h
+ */
 int transformer_language_runner(const experiment_logger *logger)
 {
     if (!valid_logger(logger))
@@ -61,6 +88,14 @@ int transformer_language_runner(const experiment_logger *logger)
     return status == CFWX_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
+/**
+ * @anchor api_src_experiments_transformer_runners_c_transformer_cross_attention_runner
+ * @brief Perform the transformer cross attention runner operation.
+ * @ingroup experiments
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see transformer_cross_attention_runner include/experiments/transformer_runners.h
+ */
 int transformer_cross_attention_runner(const experiment_logger *logger)
 {
     if (!valid_logger(logger))

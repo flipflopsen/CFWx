@@ -1,4 +1,13 @@
-/* Implementation and checks for args. */
+/**
+ * @file src/util/args.c
+ * @brief args interfaces and implementation.
+ * @ingroup utilities
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for args. */
 
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +15,16 @@
 #include "util/messages.h"
 #include "util/args.h"
 
+/**
+ * @anchor api_src_util_args_c_set_default_options
+ * @brief Perform the set default options operation.
+ * @ingroup utilities
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param options Caller-owned command-line option record.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void set_default_options(options_t *options)
 {
     options->help = false;
@@ -13,6 +32,17 @@ static void set_default_options(options_t *options)
     options->use_colors = true;
 }
 
+/**
+ * @anchor api_src_util_args_c_switch_options
+ * @brief Perform the switch options operation.
+ * @ingroup utilities
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param arg arg argument; interpretation follows this operation's implementation and contract.
+ * @param options Caller-owned command-line option record.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 void switch_options(int arg, options_t *options)
 {
     switch (arg)
@@ -41,8 +71,22 @@ void switch_options(int arg, options_t *options)
     }
 }
 
-/*
+/**
  * Tries to get the file name. Otherwise, gets stdin
+ */
+/**
+ * @anchor api_src_util_args_c_get_file_name
+ * @brief Perform the get file name operation.
+ * @ingroup utilities
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Tries to get the file name. Otherwise, gets stdin
+ * @param argc Number of process arguments including argv[0].
+ * @param argv Process argument strings; the legacy parser may terminate on help/error.
+ * @param options Caller-owned command-line option record.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
  */
 void get_file_name(int argc, char *argv[], options_t *options)
 {
@@ -60,8 +104,16 @@ void get_file_name(int argc, char *argv[], options_t *options)
     }
 }
 
-/*
+/**
  * Public function that loops until command line options were parsed
+ */
+/**
+ * @anchor api_src_util_args_c_options_parser
+ * @brief Perform the options parser operation.
+ * @ingroup utilities
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see options_parser include/util/args.h
  */
 void options_parser(int argc, char *argv[], options_t *options)
 {

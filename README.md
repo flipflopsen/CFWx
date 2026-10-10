@@ -79,3 +79,11 @@ Use `cfwx_run` for dropout-enabled mini-batch training, complete held-out evalua
 checkpoint/resume and incremental cached generation. Earlier descriptions refer to
 the original `cfwx_train` runner. CPU micro-batch accumulation is implemented;
 fused batching and GPU execution remain explicitly unsupported rather than mislabeled.
+
+## Doxygen HTML reference
+Run `doxygen Doxyfile` from the repository root and open `build-docs/html/index.html`.
+The additive CMake `docs` target runs the same configuration. Documentation includes
+module groups, public contracts, internal definitions, source browsing, model/state
+records, tests and multi-page architecture/training/runtime/GPU design guides.
+See `docs/doxygen/README.md`. CUDA is parsed as source only; no GPU build or test is
+required or performed by documentation generation.

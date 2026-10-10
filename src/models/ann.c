@@ -1,7 +1,28 @@
-/* Implementation and checks for ann. */
+/**
+ * @file src/models/ann.c
+ * @brief ann interfaces and implementation.
+ * @ingroup dense
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for ann. */
 
 #include "models/ann.h"
 
+/**
+ * @anchor api_src_models_ann_c_rng
+ * @brief Perform the rng operation.
+ * @ingroup dense
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static uint64_t rng(uint64_t *s)
 {
     /* SplitMix64 uses local state instead of the process-global random generator. */
@@ -13,6 +34,16 @@ static uint64_t rng(uint64_t *s)
     return z ^ (z >> 31);
 }
 
+/**
+ * @anchor api_src_models_ann_c_cfwx_dense_init
+ * @brief Construct and initialize dense state.
+ * @ingroup dense
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dense_init include/models/ann.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_dense_init(cfwx_dense *l, size_t inputs, size_t outputs, uint64_t seed)
 {
     /* Xavier uniform variance is 2/(fan_in + fan_out); biases start at zero. */
@@ -36,6 +67,16 @@ cfwx_status cfwx_dense_init(cfwx_dense *l, size_t inputs, size_t outputs, uint64
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_ann_c_cfwx_dense_free
+ * @brief Release owned dense storage and reset its owner.
+ * @ingroup dense
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dense_free include/models/ann.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_dense_free(cfwx_dense *l)
 {
     if (l)
@@ -45,6 +86,16 @@ void cfwx_dense_free(cfwx_dense *l)
     }
 }
 
+/**
+ * @anchor api_src_models_ann_c_cfwx_dense_forward
+ * @brief Perform the dense forward operation.
+ * @ingroup dense
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dense_forward include/models/ann.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_dense_forward(const cfwx_dense *l, const cfwx_matrix *x, cfwx_matrix *y)
 {
     if (!l || !l->bias.data || l->bias.size != l->weights.cols)
@@ -62,6 +113,16 @@ cfwx_status cfwx_dense_forward(const cfwx_dense *l, const cfwx_matrix *x, cfwx_m
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_ann_c_cfwx_dense_backward
+ * @brief Compute analytic adjoints for dense.
+ * @ingroup dense
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dense_backward include/models/ann.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_dense_backward(const cfwx_dense *l, const cfwx_matrix *x, const cfwx_matrix *dy,
                                 cfwx_matrix *dx, cfwx_matrix *dw, cfwx_vector *db)
 {
@@ -117,6 +178,16 @@ cfwx_status cfwx_dense_backward(const cfwx_dense *l, const cfwx_matrix *x, const
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_ann_c_cfwx_sgd_step
+ * @brief Perform the sgd step operation.
+ * @ingroup dense
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_sgd_step include/models/ann.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_sgd_step(double *p, const double *g, size_t n, double rate)
 {
     /* Prevalidate all updates to avoid partially applied parameter mutations. */

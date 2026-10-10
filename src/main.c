@@ -1,4 +1,13 @@
-/* Application lifecycle: parse options, initialize logging, run experiment, clean up. */
+/**
+ * @file src/main.c
+ * @brief main interfaces and implementation.
+ * @ingroup core
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Application lifecycle: parse options, initialize logging, run experiment, clean up. */
 
 #include <sys/ptrace.h>
 #include <stdio.h>
@@ -8,12 +17,34 @@
 #include "util/logger.h"
 #include "experiments/numerical_runner.h"
 
-/* Preserve the original debugger detection; PTRACE_TRACEME has process side effects. */
+/** Preserve the original debugger detection; PTRACE_TRACEME has process side effects. */
+/**
+ * @anchor api_src_main_c_is_debugger_attached
+ * @brief Perform the is debugger attached operation.
+ * @ingroup core
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Preserve the original debugger detection; PTRACE_TRACEME has process side effects.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int is_debugger_attached(void)
 {
     return (ptrace(PTRACE_TRACEME, 0, 1, 0) == -1);
 }
 
+/**
+ * @anchor api_src_main_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup core
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param argc Number of process arguments including argv[0].
+ * @param argv Process argument strings; the legacy parser may terminate on help/error.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(int argc, char *argv[])
 {
     options_t options;

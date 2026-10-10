@@ -1,3 +1,8 @@
+## @file scripts/apply_code_style.py
+# @brief apply code style source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotent project-owned C formatting/comment maintenance. Run at repository root."""
 from pathlib import Path
 import re

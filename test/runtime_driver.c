@@ -1,4 +1,13 @@
-/* Logged dataset runner with real mini-batches, full evaluation, resume and generation. */
+/**
+ * @file test/runtime_driver.c
+ * @brief runtime driver interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Logged dataset runner with real mini-batches, full evaluation, resume and generation. */
 #include "models/runtime.h"
 #include "util/logger.h"
 #include <stdio.h>
@@ -6,6 +15,17 @@
 #include <string.h>
 #include <errno.h>
 
+/**
+ * @anchor api_test_runtime_driver_c_number
+ * @brief Perform the number operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param n Positive scalar element count; each associated vector/array must contain at least n entries.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static bool number(const char *s, size_t *n)
 {
     char *end;
@@ -17,6 +37,16 @@ static bool number(const char *s, size_t *n)
     return true;
 }
 
+/**
+ * @anchor api_test_runtime_driver_c_next
+ * @brief Perform the next operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static uint64_t next(uint64_t *s)
 {
     *s += UINT64_C(0x9e3779b97f4a7c15);
@@ -26,6 +56,21 @@ static uint64_t next(uint64_t *s)
     return z ^ (z >> 31);
 }
 
+/**
+ * @anchor api_test_runtime_driver_c_generate
+ * @brief Perform the generate operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param logger Borrowed initialized experiment logger; name/user data must outlive all calls.
+ * @param path File path used by the operation; checkpoint publication requires a writable parent directory.
+ * @param prompt prompt argument; interpretation follows this operation's implementation and contract.
+ * @param count Number of entries/elements; must match the associated buffer or registry contract.
+ * @param window window argument; interpretation follows this operation's implementation and contract.
+ * @param mode Fixed or sliding cache eviction policy.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static int generate(const experiment_logger *logger, const char *path, const char *prompt,
                     size_t count, size_t window, cfwx_cache_mode mode)
 {
@@ -81,6 +126,20 @@ static int generate(const experiment_logger *logger, const char *path, const cha
     return s == CFWX_OK ? 0 : 1;
 }
 
+/**
+ * @anchor api_test_runtime_driver_c_train
+ * @brief Perform the train operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param logger Borrowed initialized experiment logger; name/user data must outlive all calls.
+ * @param dataset Optional binary byte-dataset path; NULL selects the built-in corpus where supported.
+ * @param checkpoint checkpoint argument; interpretation follows this operation's implementation and contract.
+ * @param steps Positive number of requested optimizer updates.
+ * @param resume resume argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static int train(const experiment_logger *logger, const char *dataset, const char *checkpoint,
                  size_t steps, bool resume)
 {
@@ -220,7 +279,21 @@ static int train(const experiment_logger *logger, const char *dataset, const cha
     return status == CFWX_OK ? 0 : 1;
 }
 
-/* Stable identifier flag resolves to NAME.ckpt in the working directory. */
+/** Stable identifier flag resolves to NAME.ckpt in the working directory. */
+/**
+ * @anchor api_test_runtime_driver_c_checkpoint_name
+ * @brief Perform the checkpoint name operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Stable identifier flag resolves to NAME.ckpt in the working directory.
+ * @param name Borrowed name/identity string; consult lifetime requirements of this interface.
+ * @param path File path used by the operation; checkpoint publication requires a writable parent directory.
+ * @param capacity Positive allocation/cache capacity or destination buffer capacity, in the units stated by the API.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static bool checkpoint_name(const char *name, char *path, size_t capacity)
 {
     size_t n = strlen(name);
@@ -234,6 +307,17 @@ static bool checkpoint_name(const char *name, char *path, size_t capacity)
     return true;
 }
 
+/**
+ * @anchor api_test_runtime_driver_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param argc Number of process arguments including argv[0].
+ * @param argv Process argument strings; the legacy parser may terminate on help/error.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(int argc, char **argv)
 {
     experiment_logger logger;

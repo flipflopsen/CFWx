@@ -1,3 +1,7 @@
+## @file cmake/start_project.cmake
+# @brief start project build helper.
+# @ingroup maintenance
+
 get_filename_component(source "${TEMPLATE_SOURCE}" REALPATH)
 get_filename_component(destination "${TEMPLATE_DESTINATION}" ABSOLUTE)
 file(MAKE_DIRECTORY "${destination}")

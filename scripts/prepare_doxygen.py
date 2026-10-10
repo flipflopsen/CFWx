@@ -1,3 +1,8 @@
+## @file scripts/prepare_doxygen.py
+# @brief prepare doxygen source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Prepare source annotations and manual pages. Doxygen only; no GPU execution."""
 from pathlib import Path
 import re

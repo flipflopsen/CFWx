@@ -1,4 +1,13 @@
-/* Versioned portable checkpoint with checksum and transactional load.
+/**
+ * @file src/models/checkpoint.c
+ * @brief checkpoint interfaces and implementation.
+ * @ingroup checkpoint
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Versioned portable checkpoint with checksum and transactional load.
  * Atomic rename protects against incomplete replacement, not power-loss durability. */
 #include "models/runtime.h"
 #include <stdio.h>
@@ -8,12 +17,27 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/** @brief Record/enumeration used by this module; member contracts describe storage and policy. */
 typedef struct
 {
     FILE *file;
-    uint64_t hash;
-    bool write, ok;
+    uint64_t hash; /**< State/dimension/policy value; see the containing type contract. */
+    bool write, ok; /**< State/dimension/policy value; see the containing type contract. */
 } stream;
+/**
+ * @anchor api_src_models_checkpoint_c_bytes
+ * @brief Perform the bytes operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param data Borrowed source bytes/numerical storage; valid for the stated count.
+ * @param size Positive number of elements in the requested storage.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void bytes(stream *s, unsigned char *data, size_t size)
 {
     if (!s->ok)
@@ -31,6 +55,19 @@ static void bytes(stream *s, unsigned char *data, size_t size)
     }
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_integer
+ * @brief Perform the integer operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param value value argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void integer(stream *s, uint64_t *value)
 {
     unsigned char b[8];
@@ -46,6 +83,19 @@ static void integer(stream *s, uint64_t *value)
     }
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_count
+ * @brief Perform the count operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param value value argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void count(stream *s, size_t *value)
 {
     uint64_t v = (uint64_t)*value;
@@ -59,6 +109,19 @@ static void count(stream *s, size_t *value)
     }
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_real
+ * @brief Perform the real operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param value value argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void real(stream *s, double *value)
 {
     uint64_t bits = 0;
@@ -80,11 +143,36 @@ static void real(stream *s, double *value)
     }
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_compatible
+ * @brief Perform the compatible operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool compatible(void)
 {
     return sizeof(double) == 8 && DBL_MANT_DIG == 53 && DBL_MAX_EXP == 1024;
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_state_io
+ * @brief Perform the state io operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param state Experiment state including vocabulary, RNG, dataset fingerprint and hyperparameters.
+ * @param vocabulary Positive vocabulary size or count of classes.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void state_io(stream *s, cfwx_training_state *state, size_t vocabulary)
 {
     integer(s, &state->rng);
@@ -112,6 +200,20 @@ static void state_io(stream *s, cfwx_training_state *state, size_t vocabulary)
         s->ok = false;
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_payload
+ * @brief Perform the payload operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @param p Parameter registry, dropout probability, or operand as declared; see the operation-specific formula.
+ * @param o o argument; interpretation follows this operation's implementation and contract.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static void payload(stream *s, cfwx_parameters *p, cfwx_adamw *o)
 {
     size_t stored = p->count;
@@ -144,6 +246,18 @@ static void payload(stream *s, cfwx_parameters *p, cfwx_adamw *o)
     }
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_footer
+ * @brief Perform the footer operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param s s argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool footer(stream *s)
 {
     uint64_t expected = s->hash, checksum = s->hash;
@@ -157,6 +271,22 @@ static bool footer(stream *s)
     return s->ok;
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_architecture
+ * @brief Perform the architecture operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param v Operation-specific owner or scalar as declared; not necessarily an attention operand.
+ * @param w w argument; interpretation follows this operation's implementation and contract.
+ * @param h h argument; interpretation follows this operation's implementation and contract.
+ * @param hidden Positive feed-forward hidden-feature width.
+ * @param d d argument; interpretation follows this operation's implementation and contract.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool architecture(size_t v, size_t w, size_t h, size_t hidden, size_t d)
 {
     if (!v || v > 65536 || !w || w > 4096 || !h || h > w || w % h || !hidden || hidden > 65536 ||
@@ -169,7 +299,21 @@ static bool architecture(size_t v, size_t w, size_t h, size_t hidden, size_t d)
     return parameters * 24 < 268435456;
 }
 
-/* Rename persistence requires syncing the directory entry as well as payload. */
+/** Rename persistence requires syncing the directory entry as well as payload. */
+/**
+ * @anchor api_src_models_checkpoint_c_fsync_parent
+ * @brief Perform the fsync parent operation.
+ * @ingroup checkpoint
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Rename persistence requires syncing the directory entry as well as payload.
+ * @param path File path used by the operation; checkpoint publication requires a writable parent directory.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static bool fsync_parent(const char *path)
 {
     size_t n = strlen(path);
@@ -194,6 +338,16 @@ static bool fsync_parent(const char *path)
     return ok;
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_cfwx_checkpoint_save
+ * @brief Publish a versioned CPU checkpoint with payload and parent-directory synchronization.
+ * @ingroup checkpoint
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_checkpoint_save include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_checkpoint_save(const char *path, cfwx_language_model *m,
                                  const cfwx_adamw *optimizer, const cfwx_training_state *state)
 {
@@ -265,6 +419,16 @@ cfwx_status cfwx_checkpoint_save(const char *path, cfwx_language_model *m,
     return ok ? CFWX_OK : CFWX_INVALID;
 }
 
+/**
+ * @anchor api_src_models_checkpoint_c_cfwx_checkpoint_load
+ * @brief Validate and transactionally construct CPU model, optimizer and experiment state.
+ * @ingroup checkpoint
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_checkpoint_load include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_checkpoint_load(const char *path, cfwx_language_model *m, cfwx_adamw *o,
                                  cfwx_training_state *state)
 {

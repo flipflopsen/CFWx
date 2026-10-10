@@ -1,3 +1,8 @@
+## @file scripts/check_doxygen.py
+# @brief check doxygen source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Check generated XML for named public API documentation and guide hierarchy.
 
 Runs no compiler, hardware probe or GPU workload. XML generation must precede it.

@@ -1,3 +1,7 @@
+## @file cmake/doxygen.cmake
+# @brief doxygen build helper.
+# @ingroup maintenance
+
 # Optional source-only documentation target; no CUDA language/toolkit is enabled.
 find_program(CFWX_DOXYGEN_EXECUTABLE doxygen)
 if(CFWX_DOXYGEN_EXECUTABLE)

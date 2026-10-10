@@ -1,3 +1,8 @@
+## @file scripts/integrate_cuda.py
+# @brief integrate cuda source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Static source maintenance only: NEVER configures, compiles or executes CUDA."""
 from pathlib import Path
 p=Path('src/gpu/cuda_training.cu');s=p.read_text()

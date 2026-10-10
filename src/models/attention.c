@@ -1,8 +1,27 @@
-/* Implementation and checks for attention. */
+/**
+ * @file src/models/attention.c
+ * @brief attention interfaces and implementation.
+ * @ingroup attention
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for attention. */
 
 #include "models/attention.h"
 #include <float.h>
 
+/**
+ * @anchor api_src_models_attention_c_cfwx_attention
+ * @brief Perform the attention operation.
+ * @ingroup attention
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_attention include/models/attention.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_attention(const cfwx_matrix *q, const cfwx_matrix *k, const cfwx_matrix *v,
                            bool causal, cfwx_matrix *out, cfwx_matrix *p)
 {
@@ -82,6 +101,16 @@ done:
     return status;
 }
 
+/**
+ * @anchor api_src_models_attention_c_cfwx_layer_norm
+ * @brief Perform the layer norm operation.
+ * @ingroup attention
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_layer_norm include/models/attention.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_layer_norm(const cfwx_matrix *x, const double *gamma, const double *beta,
                             double eps, cfwx_matrix *out)
 {

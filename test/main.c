@@ -1,4 +1,13 @@
-/* Implementation and checks for main. */
+/**
+ * @file test/main.c
+ * @brief main interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for main. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +19,7 @@
 #include "maths/activation_functions.h"
 #include "maths/loss_functions.h"
 #include "maths/rewards.h"
-/* Checks remain active under NDEBUG. */
+/** Checks remain active under NDEBUG. */
 #define CHECK(x)                                                                                   \
     do                                                                                             \
     {                                                                                              \
@@ -20,8 +29,23 @@
             exit(EXIT_FAILURE);                                                                    \
         }                                                                                          \
     } while (0)
+/** @def OK
+ * @brief ok macro; see expansion and module contract.
+ */
 #define OK(x) CHECK((x) == CFWX_OK)
+/** @def NEAR
+ * @brief near macro; see expansion and module contract.
+ */
 #define NEAR(a, b, t) CHECK(isfinite(a) && fabs((a) - (b)) <= (t))
+/**
+ * @anchor api_test_main_c_containers
+ * @brief Perform the containers operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void containers(void)
 {
     /* Verify ownership reset, overflow checks, reference products and tensor bounds. */
@@ -92,6 +116,15 @@ static void containers(void)
     cfwx_tensor_free(&tensor);
 }
 
+/**
+ * @anchor api_test_main_c_maths
+ * @brief Perform the maths operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void maths(void)
 {
     /* Check extreme logits and derivatives against centered finite differences. */
@@ -141,6 +174,19 @@ static void maths(void)
     CHECK(cfwx_discounted_returns(r, 3, 2, r) == CFWX_INVALID);
 }
 
+/**
+ * @anchor api_test_main_c_objective
+ * @brief Perform the objective operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param l Model/operation state; input versus owner role follows the declaration and operation contract.
+ * @param x Borrowed primal/input numeric operand; shape is stated in the operation contract.
+ * @param y y argument; interpretation follows this operation's implementation and contract.
+ * @param dy Borrowed upstream adjoint; same output shape as the corresponding forward operation.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static double objective(cfwx_dense *l, cfwx_matrix *x, cfwx_matrix *y, cfwx_matrix *dy)
 {
     /* A linear output objective isolates the dense vector-Jacobian product. */
@@ -152,6 +198,15 @@ static double objective(cfwx_dense *l, cfwx_matrix *x, cfwx_matrix *y, cfwx_matr
     return s;
 }
 
+/**
+ * @anchor api_test_main_c_dense
+ * @brief Perform the dense operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void dense(void)
 {
     /* Perturb weights, biases and inputs to check all backward gradients. */
@@ -204,6 +259,15 @@ static void dense(void)
     cfwx_vector_free(&db);
 }
 
+/**
+ * @anchor api_test_main_c_attention
+ * @brief Perform the attention operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void attention(void)
 {
     /* Check attention reference values, causal zeros and constant-row normalization. */
@@ -247,6 +311,15 @@ static void attention(void)
     cfwx_matrix_free(&p);
 }
 
+/**
+ * @anchor api_test_main_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     containers();

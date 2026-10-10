@@ -1,8 +1,29 @@
-/* Reference CPU batching, full evaluation, incremental KV decode and sampling. */
+/**
+ * @file src/models/runtime.c
+ * @brief runtime interfaces and implementation.
+ * @ingroup runtime
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Reference CPU batching, full evaluation, incremental KV decode and sampling. */
 #include "models/runtime.h"
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @anchor api_src_models_runtime_c_random_next
+ * @brief Perform the random next operation.
+ * @ingroup runtime
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param state Experiment state including vocabulary, RNG, dataset fingerprint and hyperparameters.
+ * @return Computed value or status described by the adjacent contract.
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 static uint64_t random_next(uint64_t *state)
 {
     *state += UINT64_C(0x9e3779b97f4a7c15);
@@ -12,6 +33,16 @@ static uint64_t random_next(uint64_t *state)
     return z ^ (z >> 31);
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_dataset_hash
+ * @brief Perform the dataset hash operation.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_dataset_hash include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 uint64_t cfwx_dataset_hash(const unsigned char *data, size_t count)
 {
     uint64_t h = UINT64_C(14695981039346656037);
@@ -23,6 +54,16 @@ uint64_t cfwx_dataset_hash(const unsigned char *data, size_t count)
     return h;
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_language_model_batch
+ * @brief Accumulate independent-sequence gradients weighted by valid token count.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_batch include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_batch(const cfwx_language_model *model, const size_t *const *tokens,
                                       const size_t *const *targets, const size_t *lengths,
                                       size_t batch, size_t context, double dropout, uint64_t *rng,
@@ -94,6 +135,16 @@ cfwx_status cfwx_language_model_batch(const cfwx_language_model *model, const si
     return s;
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_language_model_evaluate
+ * @brief Evaluate every adjacent held-out target once using chunked contexts.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_evaluate include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_evaluate(const cfwx_language_model *model, const size_t *tokens,
                                          size_t count, size_t context, double *loss, size_t *scored)
 {
@@ -118,6 +169,16 @@ cfwx_status cfwx_language_model_evaluate(const cfwx_language_model *model, const
     return isfinite(*loss) ? CFWX_OK : CFWX_NUMERIC;
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_kv_cache_free
+ * @brief Release owned kv cache storage and reset its owner.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_kv_cache_free include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_kv_cache_free(cfwx_kv_cache *cache)
 {
     if (!cache)
@@ -130,6 +191,16 @@ void cfwx_kv_cache_free(cfwx_kv_cache *cache)
     *cache = (cfwx_kv_cache){0};
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_kv_cache_reset
+ * @brief Perform the kv cache reset operation.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_kv_cache_reset include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 void cfwx_kv_cache_reset(cfwx_kv_cache *cache)
 {
     if (cache)
@@ -139,6 +210,16 @@ void cfwx_kv_cache_reset(cfwx_kv_cache *cache)
     }
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_kv_cache_init_mode
+ * @brief Initialize an explicitly fixed or sliding projected K/V cache.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_kv_cache_init_mode include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_kv_cache_init_mode(cfwx_kv_cache *cache, const cfwx_language_model *model,
                                     size_t capacity, cfwx_cache_mode mode)
 {
@@ -164,12 +245,32 @@ cfwx_status cfwx_kv_cache_init_mode(cfwx_kv_cache *cache, const cfwx_language_mo
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_kv_cache_init
+ * @brief Initialize a fixed-capacity cache using the legacy default policy.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_kv_cache_init include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_kv_cache_init(cfwx_kv_cache *cache, const cfwx_language_model *model,
                                size_t capacity)
 {
     return cfwx_kv_cache_init_mode(cache, model, capacity, CFWX_CACHE_FIXED);
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_language_model_decode
+ * @brief Append one token and evaluate next-token logits using projected K/V history.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_language_model_decode include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_language_model_decode(cfwx_kv_cache *cache, size_t token, cfwx_matrix *logits)
 {
     if (!cache || !cache->model || cache->position == SIZE_MAX ||
@@ -314,6 +415,16 @@ cleanup:
     return s;
 }
 
+/**
+ * @anchor api_src_models_runtime_c_cfwx_sample_logits
+ * @brief Sample finite logits with greedy/temperature and optional top-k filtering.
+ * @ingroup runtime
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_sample_logits include/models/runtime.h
+ * @note Internal helper state may be temporary. Referenced-by/source links show
+ * how composite callers propagate errors and release allocations.
+ */
 cfwx_status cfwx_sample_logits(const double *logits, size_t vocabulary, double temperature,
                                size_t top_k, uint64_t *rng, size_t *token)
 {

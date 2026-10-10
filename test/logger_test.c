@@ -1,4 +1,13 @@
-/* Verify named experiment routing, all levels, filtering and logger injection. */
+/**
+ * @file test/logger_test.c
+ * @brief logger test interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Verify named experiment routing, all levels, filtering and logger injection. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,15 +24,33 @@
         }                                                                                          \
     } while (0)
 
+/** @brief Record/enumeration used by this module; member contracts describe storage and policy. */
 typedef struct
 {
-    unsigned counts[5];
-    char name[64];
-    char message[256];
-    int line;
+    unsigned counts[5]; /**< State/dimension/policy value; see the containing type contract. */
+    char name[64]; /**< State/dimension/policy value; see the containing type contract. */
+    char message[256]; /**< State/dimension/policy value; see the containing type contract. */
+    int line; /**< State/dimension/policy value; see the containing type contract. */
 } capture;
 
-/* Copy borrowed data during the callback; no process-global test state. */
+/** Copy borrowed data during the callback; no process-global test state. */
+/**
+ * @anchor api_test_logger_test_c_capture_message
+ * @brief Perform the capture message operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @par Operation contract
+ * Copy borrowed data during the callback; no process-global test state.
+ * @param data Borrowed source bytes/numerical storage; valid for the stated count.
+ * @param name Borrowed name/identity string; consult lifetime requirements of this interface.
+ * @param level Valid logging severity from DEBUG through FATAL.
+ * @param file Call-site filename or internal stream handle, according to the declared type.
+ * @param line Source line number for diagnostic attribution.
+ * @param message Borrowed formatted diagnostic payload; valid only for the sink callback duration.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void capture_message(void *data, const char *name, LogLevel level, const char *file,
                             int line, const char *message)
 {
@@ -35,6 +62,15 @@ static void capture_message(void *data, const char *name, LogLevel level, const 
     result->line = line;
 }
 
+/**
+ * @anchor api_test_logger_test_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     capture first = {0}, second = {0};

@@ -1,3 +1,8 @@
+## @file scripts/finalize_doxygen.py
+# @brief finalize doxygen source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Refine Doxygen source matching and preserve full operation contracts in API docs."""
 from pathlib import Path
 import re

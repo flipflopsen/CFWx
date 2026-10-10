@@ -1,4 +1,13 @@
-/* Exhaustive parameter/input finite differences on tiny analytic training graphs. */
+/**
+ * @file test/training_test.c
+ * @brief training test interfaces and implementation.
+ * @ingroup tests
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Exhaustive parameter/input finite differences on tiny analytic training graphs. */
 #include "models/training.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +21,25 @@
             exit(1);                                                                               \
         }                                                                                          \
     } while (0)
+/** @def OK
+ * @brief ok macro; see expansion and module contract.
+ */
 #define OK(x) CHECK((x) == CFWX_OK)
+/** @def CLOSE
+ * @brief close macro; see expansion and module contract.
+ */
 #define CLOSE(a, b) CHECK(isfinite(a) && fabs((a) - (b)) < 2e-5 * (1 + fabs(b)))
+/**
+ * @anchor api_test_training_test_c_dot
+ * @brief Perform the dot operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param a First borrowed numerical operand or internal node/state as declared.
+ * @param b Second borrowed numerical operand or internal node/state as declared.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static double dot(const cfwx_matrix *a, const cfwx_matrix *b)
 {
     double s = 0;
@@ -22,6 +48,15 @@ static double dot(const cfwx_matrix *a, const cfwx_matrix *b)
     return s;
 }
 
+/**
+ * @anchor api_test_training_test_c_primitives
+ * @brief Perform the primitives operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void primitives(void)
 {
     cfwx_matrix q = {0}, k = {0}, v = {0}, dy = {0}, dq = {0}, dk = {0}, dv = {0}, out = {0},
@@ -96,6 +131,15 @@ static void primitives(void)
         cfwx_matrix_free(all[i]);
 }
 
+/**
+ * @anchor api_test_training_test_c_model
+ * @brief Perform the model operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void model(void)
 {
     cfwx_language_model m = {0}, g = {0};
@@ -125,6 +169,15 @@ static void model(void)
     cfwx_language_model_free(&g);
 }
 
+/**
+ * @anchor api_test_training_test_c_gated
+ * @brief Perform the gated operation.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void gated(void)
 {
     cfwx_feedforward l = {0}, g = {0};
@@ -166,6 +219,15 @@ static void gated(void)
     cfwx_feedforward_free(&g);
 }
 
+/**
+ * @anchor api_test_training_test_c_main
+ * @brief Run this executable driver and propagate its success/failure status.
+ * @ingroup tests
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @return Computed value or status described by the adjacent contract.
+ */
 int main(void)
 {
     primitives();

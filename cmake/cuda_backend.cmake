@@ -1,3 +1,7 @@
+## @file cmake/cuda_backend.cmake
+# @brief cuda backend build helper.
+# @ingroup maintenance
+
 # No CUDA discovery occurs unless the user opts in on their own machine.
 option(CFWX_CUDA "Build CUDA analytic Transformer backend" OFF)
 option(CFWX_REGISTER_GPU_TESTS "Register manual GPU tests with CTest" OFF)

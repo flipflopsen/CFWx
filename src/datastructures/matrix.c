@@ -1,7 +1,24 @@
-/* Implementation and checks for matrix. */
+/**
+ * @file src/datastructures/matrix.c
+ * @brief matrix interfaces and implementation.
+ * @ingroup containers
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for matrix. */
 
 #include "datastructures/matrix.h"
 
+/**
+ * @anchor api_src_datastructures_matrix_c_cfwx_matrix_init
+ * @brief Construct and initialize matrix state.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_matrix_init include/datastructures/matrix.h
+ */
 cfwx_status cfwx_matrix_init(cfwx_matrix *m, size_t rows, size_t cols)
 {
     size_t n;
@@ -14,6 +31,14 @@ cfwx_status cfwx_matrix_init(cfwx_matrix *m, size_t rows, size_t cols)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_matrix_c_cfwx_matrix_free
+ * @brief Release owned matrix storage and reset its owner.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_matrix_free include/datastructures/matrix.h
+ */
 void cfwx_matrix_free(cfwx_matrix *m)
 {
     if (m)
@@ -23,6 +48,14 @@ void cfwx_matrix_free(cfwx_matrix *m)
     }
 }
 
+/**
+ * @anchor api_src_datastructures_matrix_c_cfwx_matrix_multiply
+ * @brief Multiply row-major matrices into caller-owned output storage.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_matrix_multiply include/datastructures/matrix.h
+ */
 cfwx_status cfwx_matrix_multiply(const cfwx_matrix *a, const cfwx_matrix *b, cfwx_matrix *out)
 {
     if (!a || !b || !out || !a->data || !b->data || !out->data || out->data == a->data ||
@@ -43,6 +76,14 @@ cfwx_status cfwx_matrix_multiply(const cfwx_matrix *a, const cfwx_matrix *b, cfw
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_matrix_c_cfwx_matrix_transpose
+ * @brief Transpose a matrix without allocating an output owner.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_matrix_transpose include/datastructures/matrix.h
+ */
 cfwx_status cfwx_matrix_transpose(const cfwx_matrix *a, cfwx_matrix *out)
 {
     if (!a || !out || !a->data || !out->data || a->data == out->data)

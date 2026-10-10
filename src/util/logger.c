@@ -1,4 +1,13 @@
-/* Legacy console/file backend with explicitly injected experiment contexts. */
+/**
+ * @file src/util/logger.c
+ * @brief logger interfaces and implementation.
+ * @ingroup logging
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Legacy console/file backend with explicitly injected experiment contexts. */
 
 #include "util/logger.h"
 #include <stdlib.h>
@@ -10,12 +19,15 @@
 
 #ifdef _WIN32
 #include <direct.h>
+/** @def mkdir
+ * @brief mkdir macro; see expansion and module contract.
+ */
 #define mkdir(path, mode) _mkdir(path)
 #else
 #include <unistd.h>
 #endif
 
-/* Backend lifecycle belongs to the application, not to experiments. */
+/** Backend lifecycle belongs to the application, not to experiments. */
 static FILE *log_file = NULL;
 static LogLevel current_level = LOG_DEBUG;
 static const char *level_strings[] = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
@@ -28,11 +40,32 @@ static const char *level_colors[] = {
 };
 static const char *color_reset = "\x1b[0m";
 
+/**
+ * @anchor api_src_util_logger_c_valid_level
+ * @brief Perform the valid level operation.
+ * @ingroup logging
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param level Valid logging severity from DEBUG through FATAL.
+ * @return Computed value or status described by the adjacent contract.
+ */
 static bool valid_level(LogLevel level)
 {
     return level >= LOG_DEBUG && level <= LOG_FATAL;
 }
 
+/**
+ * @anchor api_src_util_logger_c_get_timestamp
+ * @brief Perform the get timestamp operation.
+ * @ingroup logging
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param buffer buffer argument; interpretation follows this operation's implementation and contract.
+ * @param size Positive number of elements in the requested storage.
+ * @note This operation returns no value; inspect its documented mutation/lifetime effects.
+ */
 static void get_timestamp(char *buffer, size_t size)
 {
     time_t now = time(NULL);
@@ -43,6 +76,16 @@ static void get_timestamp(char *buffer, size_t size)
         snprintf(buffer, size, "unknown-time");
 }
 
+/**
+ * @anchor api_src_util_logger_c_get_filename
+ * @brief Perform the get filename operation.
+ * @ingroup logging
+ * @details Read the adjacent operation-specific contract and linked module guide
+ * for exact dimensions, aliasing, reduction and error behavior. Parameters
+ * are borrowed unless the constructor/free contract explicitly transfers ownership.
+ * @param path File path used by the operation; checkpoint publication requires a writable parent directory.
+ * @return Pointer described by the operation contract; ownership is not implied.
+ */
 static const char *get_filename(const char *path)
 {
     if (!path)
@@ -55,6 +98,14 @@ static const char *get_filename(const char *path)
     return filename ? filename + 1 : path;
 }
 
+/**
+ * @anchor api_src_util_logger_c_logger_init
+ * @brief Construct and initialize logger state.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see logger_init include/util/logger.h
+ */
 int logger_init(const char *log_folder, const char *log_filename, bool debug)
 {
     /* Do not leak an already initialized backend on a repeated init call. */
@@ -102,6 +153,14 @@ int logger_init(const char *log_folder, const char *log_filename, bool debug)
     return 0;
 }
 
+/**
+ * @anchor api_src_util_logger_c_logger_cleanup
+ * @brief Perform the logger cleanup operation.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see logger_cleanup include/util/logger.h
+ */
 void logger_cleanup(void)
 {
     if (log_file && log_file != stdout && log_file != stderr)
@@ -112,6 +171,14 @@ void logger_cleanup(void)
     }
 }
 
+/**
+ * @anchor api_src_util_logger_c_logger_set_level
+ * @brief Perform the logger set level operation.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see logger_set_level include/util/logger.h
+ */
 void logger_set_level(LogLevel level)
 {
     if (valid_level(level))
@@ -121,7 +188,7 @@ void logger_set_level(LogLevel level)
     }
 }
 
-/* Independent context thresholds are checked before reaching this shared sink.
+/** Independent context thresholds are checked before reaching this shared sink.
  * va_copy is required because console and file each consume the arguments. */
 static void logger_write(LogLevel level, const char *name, const char *file, int line,
                          const char *fmt, va_list args)
@@ -151,6 +218,14 @@ static void logger_write(LogLevel level, const char *name, const char *file, int
     }
 }
 
+/**
+ * @anchor api_src_util_logger_c_logger_log
+ * @brief Emit an application-attributed record through the legacy shared backend.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see logger_log include/util/logger.h
+ */
 void logger_log(LogLevel level, const char *file, int line, const char *fmt, ...)
 {
     /* Validate before indexing level/color arrays. */
@@ -163,6 +238,14 @@ void logger_log(LogLevel level, const char *file, int line, const char *fmt, ...
     va_end(args);
 }
 
+/**
+ * @anchor api_src_util_logger_c_experiment_logger_init
+ * @brief Initialize a borrowed named logger context and optional sink.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see experiment_logger_init include/util/logger.h
+ */
 int experiment_logger_init(experiment_logger *logger, const char *name, LogLevel minimum_level,
                            logger_sink_fn sink, void *user_data)
 {
@@ -173,6 +256,14 @@ int experiment_logger_init(experiment_logger *logger, const char *name, LogLevel
     return 0;
 }
 
+/**
+ * @anchor api_src_util_logger_c_experiment_logger_log
+ * @brief Filter and route an experiment-attributed formatted record.
+ * @ingroup logging
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see experiment_logger_log include/util/logger.h
+ */
 void experiment_logger_log(const experiment_logger *logger, LogLevel level, const char *file,
                            int line, const char *fmt, ...)
 {

@@ -1,7 +1,24 @@
-/* Implementation and checks for vector. */
+/**
+ * @file src/datastructures/vector.c
+ * @brief vector interfaces and implementation.
+ * @ingroup containers
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Implementation and checks for vector. */
 
 #include "datastructures/vector.h"
 
+/**
+ * @anchor api_src_datastructures_vector_c_cfwx_vector_init
+ * @brief Construct and initialize vector state.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_vector_init include/datastructures/vector.h
+ */
 cfwx_status cfwx_vector_init(cfwx_vector *v, size_t n)
 {
     size_t count;
@@ -14,6 +31,14 @@ cfwx_status cfwx_vector_init(cfwx_vector *v, size_t n)
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_vector_c_cfwx_vector_free
+ * @brief Release owned vector storage and reset its owner.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_vector_free include/datastructures/vector.h
+ */
 void cfwx_vector_free(cfwx_vector *v)
 {
     if (v)
@@ -23,6 +48,14 @@ void cfwx_vector_free(cfwx_vector *v)
     }
 }
 
+/**
+ * @anchor api_src_datastructures_vector_c_cfwx_vector_dot
+ * @brief Compute a compensated vector dot product.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_vector_dot include/datastructures/vector.h
+ */
 cfwx_status cfwx_vector_dot(const cfwx_vector *a, const cfwx_vector *b, double *out)
 {
     /* Kahan correction reduces low-order rounding loss in summation. */
@@ -44,6 +77,14 @@ cfwx_status cfwx_vector_dot(const cfwx_vector *a, const cfwx_vector *b, double *
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_vector_c_cfwx_vector_add
+ * @brief Perform the vector add operation.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_vector_add include/datastructures/vector.h
+ */
 cfwx_status cfwx_vector_add(const cfwx_vector *a, const cfwx_vector *b, cfwx_vector *out)
 {
     if (!a || !b || !out || !a->data || !b->data || !out->data)
@@ -55,6 +96,14 @@ cfwx_status cfwx_vector_add(const cfwx_vector *a, const cfwx_vector *b, cfwx_vec
     return CFWX_OK;
 }
 
+/**
+ * @anchor api_src_datastructures_vector_c_cfwx_vector_scale
+ * @brief Perform the vector scale operation.
+ * @ingroup containers
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see cfwx_vector_scale include/datastructures/vector.h
+ */
 cfwx_status cfwx_vector_scale(cfwx_vector *v, double scale)
 {
     if (!v || !v->data || !isfinite(scale))

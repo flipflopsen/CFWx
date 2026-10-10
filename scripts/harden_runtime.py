@@ -1,3 +1,8 @@
+## @file scripts/harden_runtime.py
+# @brief harden runtime source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotent runtime test hardening and documentation capability updates."""
 from pathlib import Path
 p=Path('test/runtime_test.c');s=p.read_text()

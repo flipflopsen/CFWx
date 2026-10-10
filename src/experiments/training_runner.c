@@ -1,10 +1,27 @@
-/* Deterministic next-byte training, held-out contiguous split, AdamW and clipping. */
+/**
+ * @file src/experiments/training_runner.c
+ * @brief training runner interfaces and implementation.
+ * @ingroup experiments
+ * @details See the module guide for shape, ownership, failure and execution-policy
+ * constraints. Source listings include implementation helpers and ordinary
+ * explanatory comments; generated source documentation does not execute code.
+ */
+
+/** Deterministic next-byte training, held-out contiguous split, AdamW and clipping. */
 #include "experiments/training_runner.h"
 #include "models/training.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @anchor api_src_experiments_training_runner_c_transformer_training_runner
+ * @brief Perform the transformer training runner operation.
+ * @ingroup experiments
+ * @details Implementation of the public declaration; its canonical contract
+ * remains in the corresponding header and is merged by Doxygen.
+ * @see transformer_training_runner include/experiments/training_runner.h
+ */
 int transformer_training_runner(const experiment_logger *logger, const char *dataset, size_t steps)
 {
     if (!logger || !logger->experiment_name || !logger->experiment_name[0] ||

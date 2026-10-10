@@ -1,3 +1,8 @@
+## @file scripts/refine_doxygen.py
+# @brief refine doxygen source/document maintenance tool.
+# @ingroup maintenance
+# @details Textual maintenance only; does not itself validate numerical correctness.
+
 """Idempotent source-only Doxygen parser/annotation refinement. No CUDA execution."""
 from pathlib import Path
 p=Path('scripts/document_repository.py');s=p.read_text()
