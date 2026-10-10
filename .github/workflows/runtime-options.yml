@@ -2,7 +2,7 @@ name: Runtime options source integration and CPU validation
 on:
   push:
     branches: [feature/implement_basics]
-    paths: [scripts/fuse_cuda.py, scripts/extend_runtime.py, scripts/finish_runtime_options.py, .github/workflows/runtime-options.yml]
+    paths: [scripts/fuse_cuda.py, scripts/extend_runtime.py, scripts/finish_runtime_options.py, scripts/fix_options_maintenance.py, .github/workflows/runtime-options.yml]
 permissions:
   contents: write
 jobs:
@@ -18,6 +18,7 @@ jobs:
           sudo apt-get install -y libcmocka-dev
       - name: Static CUDA edits and CPU source changes
         run: |
+          python scripts/fix_options_maintenance.py
           python scripts/fuse_cuda.py
           python scripts/extend_runtime.py
           python scripts/finish_runtime_options.py
@@ -38,11 +39,11 @@ jobs:
           cmake -S . -B build-asan -DCFWX_USE_VCPKG=OFF -DCFWX_CUDA=OFF -DCFWX_SANITIZERS=ON
           cmake --build build-asan --parallel 2
           ctest --test-dir build-asan --output-on-failure
-      - name: Commit validated CPU changes and uncompiled CUDA source
+      - name: Commit CPU changes and uncompiled CUDA source
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add include src test CMakeLists.txt
+          git add scripts/finish_runtime_options.py include src test CMakeLists.txt
           if ! git diff --cached --quiet; then
             git commit -m 'Integrate sliding cache durable named checkpoints and opt-in fused CUDA batch source'
             git push origin HEAD:feature/implement_basics
