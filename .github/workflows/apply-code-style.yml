@@ -2,7 +2,7 @@ name: Apply documented C code style
 on:
   push:
     branches: [feature/implement_basics]
-    paths: [scripts/apply_code_style.py, scripts/integrate_transformer.py, scripts/integrate_training.py, .clang-format, .github/workflows/apply-code-style.yml]
+    paths: [scripts/apply_code_style.py, scripts/integrate_transformer.py, scripts/integrate_training.py, scripts/harden_training.py, .clang-format, .github/workflows/apply-code-style.yml]
 permissions:
   contents: write
 jobs:
