@@ -14,6 +14,14 @@ jobs:
           ref: feature/implement_basics
       - name: Install source formatter only
         run: python -m pip install clang-format==22.1.0
+      - name: Make source guard independent of whitespace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/integrate_cuda.py')
+          s=p.read_text().replace("if 'double *dropmask=nullptr' not in s:", "if 'dropmask' not in s:")
+          p.write_text(s)
+          PY
       - name: Apply static source changes only
         run: |
           python scripts/integrate_cuda.py
@@ -26,7 +34,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add CMakeLists.txt src/gpu include/gpu test/cuda_manual.c
+          git add scripts/integrate_cuda.py CMakeLists.txt src/gpu include/gpu test/cuda_manual.c
           if ! git diff --cached --quiet; then
             git commit -m 'Apply opt-in CUDA source integration and explicit saved dropout masks'
             git push origin HEAD:feature/implement_basics
