@@ -5,7 +5,15 @@
 #include <string.h>
 #include "experiments/numerical_runner.h"
 
-#define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #condition); return EXIT_FAILURE; } } while (0)
+#define CHECK(condition)                                                                           \
+    do                                                                                             \
+    {                                                                                              \
+        if (!(condition))                                                                          \
+        {                                                                                          \
+            fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #condition);                           \
+            return EXIT_FAILURE;                                                                   \
+        }                                                                                          \
+    } while (0)
 
 typedef struct
 {
@@ -16,8 +24,8 @@ typedef struct
 } capture;
 
 /* Copy borrowed data during the callback; no process-global test state. */
-static void capture_message(void *data, const char *name, LogLevel level,
-                            const char *file, int line, const char *message)
+static void capture_message(void *data, const char *name, LogLevel level, const char *file,
+                            int line, const char *message)
 {
     capture *result = data;
     (void)file;
@@ -32,7 +40,8 @@ int main(void)
     capture first = {0}, second = {0};
     experiment_logger a, b;
     CHECK(experiment_logger_init(&a, "experiment.alpha", LOG_DEBUG, capture_message, &first) == 0);
-    CHECK(experiment_logger_init(&b, "experiment.beta", LOG_WARNING, capture_message, &second) == 0);
+    CHECK(experiment_logger_init(&b, "experiment.beta", LOG_WARNING, capture_message, &second) ==
+          0);
 
     /* Experiment thresholds must not depend on the application's global level. */
     logger_set_level(LOG_FATAL);

@@ -14,8 +14,8 @@ static void numerical_experiment_success(void **state)
 {
     (void)state;
     experiment_logger logger;
-    assert_int_equal(experiment_logger_init(&logger, "test.numerical.softmax",
-                                           LOG_WARNING, NULL, NULL), 0);
+    assert_int_equal(
+        experiment_logger_init(&logger, "test.numerical.softmax", LOG_WARNING, NULL, NULL), 0);
     assert_int_equal(numerical_runner(&logger), EXIT_SUCCESS);
     assert_int_equal(numerical_runner(NULL), EXIT_FAILURE);
 }
@@ -32,9 +32,7 @@ static void softmax_extreme_logits(void **state)
 
 int main(void)
 {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(numerical_experiment_success),
-        cmocka_unit_test(softmax_extreme_logits)
-    };
+    const struct CMUnitTest tests[] = {cmocka_unit_test(numerical_experiment_success),
+                                       cmocka_unit_test(softmax_extreme_logits)};
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

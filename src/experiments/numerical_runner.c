@@ -18,9 +18,7 @@ int numerical_runner(const experiment_logger *logger)
     EXP_LOG_DEBUG(logger, "Input logits: [1.0, 2.0, 3.0]; tolerance: 1e-12");
 
     const double logits[] = {1.0, 2.0, 3.0};
-    const double expected[] = {
-        0.09003057317038046, 0.24472847105479764, 0.6652409557748218
-    };
+    const double expected[] = {0.09003057317038046, 0.24472847105479764, 0.6652409557748218};
     double probabilities[3];
     cfwx_status status = cfwx_softmax(logits, 3, probabilities);
     if (status != CFWX_OK)
@@ -33,15 +31,15 @@ int numerical_runner(const experiment_logger *logger)
     double sum = 0.0;
     for (size_t i = 0; i < 3; i++)
     {
-        if (!isfinite(probabilities[i]) || probabilities[i] < 0.0 ||
-            probabilities[i] > 1.0 || fabs(probabilities[i] - expected[i]) > 1e-12)
+        if (!isfinite(probabilities[i]) || probabilities[i] < 0.0 || probabilities[i] > 1.0 ||
+            fabs(probabilities[i] - expected[i]) > 1e-12)
         {
             EXP_LOG_ERROR(logger, "Softmax reference check failed at index %zu", i);
             return EXIT_FAILURE;
         }
 
-        EXP_LOG_DEBUG(logger, "probability[%zu]=%.17g; expected=%.17g", i,
-                      probabilities[i], expected[i]);
+        EXP_LOG_DEBUG(logger, "probability[%zu]=%.17g; expected=%.17g", i, probabilities[i],
+                      expected[i]);
         sum += probabilities[i];
     }
     if (fabs(sum - 1.0) > 1e-12)

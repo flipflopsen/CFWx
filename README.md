@@ -21,7 +21,7 @@ ctest --test-dir build-asan --output-on-failure
 
 Cmocka is discovered through its CMake configuration (vcpkg by default), with a system pkg-config fallback. When available, `cfwx_test_runner` executes the cmocka tests registered as `unit_tests`. The separate `cfwx_numerical_test_runner` retains the full numerical regression suite registered as `numerical_foundations`; it can run without cmocka. Missing cmocka generates an explicit warning. `BUILD_TESTING=OFF` disables both test executables.
 
-Main retains the original argument parsing, debugger detection, logger initialization and cleanup. It delegates the experiment to `numerical_runner()` in `src/experiments/numerical_runner.c`, which checks softmax reference values and normalization and returns a process-compatible success/failure code. Runner failures are logged and propagated after cleanup. The original `args.c` has been restored verbatim; its pre-existing unterminated long-option table and potential filename-termination defect remain and should be addressed separately. Debugger detection also retains its original `PTRACE_TRACEME` side effects.
+Main retains the original argument parsing, debugger detection, logger initialization and cleanup. It delegates the experiment to `numerical_runner(&logger)` in `src/experiments/numerical_runner.c`, which checks softmax reference values and normalization and returns a process-compatible success/failure code. Runner failures are logged and propagated after cleanup. The original `args.c` has been restored behavior (subsequently reformatted); its pre-existing unterminated long-option table and potential filename-termination defect remain and should be addressed separately. Debugger detection also retains its original `PTRACE_TRACEME` side effects.
 
 `PROJECT_PATH` is configurable and defaults to the checkout directory rather than the original placeholder, so logger initialization works without source edits. CLI uses POSIX getopt and Linux ptrace; the numerical core has no OS-specific calls. VSCode settings remain user-specific.
 
@@ -56,3 +56,10 @@ Attention: Q `[queries,d]`, K `[keys,d]`, V `[keys,value_dim]`. Causal mode requ
 Numerical tests remain active under NDEBUG. Tests cover container operations, overflow/bounds, reference matrix products, stable logits, activation and categorical-loss finite differences, all dense weight/bias/input finite differences, SGD, causal attention and constant-row normalization. Cmocka additionally exercises the experiment runner and extreme-logit normalization.
 
 Not implemented: broadcasting/views, autodiff graph, normalization/attention backward, multi-head projections, full Transformer blocks, dropout, Adam, serialization, GPU or parallel training. Existing logger is global and not thread-safe; initialization RNG is noncryptographic. Separate mutable objects per thread.
+
+## Named experiment logging and code style
+The application injects an `experiment_logger` named `numerical.softmax` into the runner.
+INFO records lifecycle/results, DEBUG records reference values and ERROR records failed checks.
+All five levels have independent per-context thresholds and an optional custom sink.
+See [CODE_STYLEGUIDE.md](CODE_STYLEGUIDE.md) and `.clang-format`.
+The legacy FILE/localtime backend remains single-threaded.

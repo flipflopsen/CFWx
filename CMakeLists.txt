@@ -67,9 +67,14 @@ add_library(cfwx_core STATIC ${SOURCES_CORE})
 target_include_directories(cfwx_core PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(cfwx_core PUBLIC m)
 
+# Logging stays separate from backend-independent numerical kernels.
+add_library(cfwx_logger STATIC ${SRCDIR}/util/logger.c)
+target_include_directories(cfwx_logger PUBLIC "${CMAKE_SOURCE_DIR}/include")
+list(REMOVE_ITEM SOURCES "${SRCDIR}/util/logger.c")
+
 # Main executable
 add_executable(${BINARY} ${SOURCES})
-target_link_libraries(${BINARY} PRIVATE cfwx_core)
+target_link_libraries(${BINARY} PRIVATE cfwx_core cfwx_logger)
 target_compile_definitions(${BINARY} PRIVATE CMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 # Libs / testing
@@ -110,7 +115,7 @@ if(CFWX_CMOCKA_TARGET)
     if(BUILD_TESTING)
         set(TEST_BINARY "${BINARY}_test_runner")
         add_executable(${TEST_BINARY} ${TESTDIR}/cmocka_main.c ${SOURCES_EXPERIMENTS})
-        target_link_libraries(${TEST_BINARY} PRIVATE cfwx_core ${CFWX_CMOCKA_TARGET})
+        target_link_libraries(${TEST_BINARY} PRIVATE cfwx_core cfwx_logger ${CFWX_CMOCKA_TARGET})
         set_target_properties(${TEST_BINARY} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BINDIR})
         add_test(NAME unit_tests COMMAND ${TEST_BINARY})
     endif()
@@ -121,12 +126,23 @@ endif()
 # Optional sanitizers. LINK_FLAGS keeps compatibility with older CMake.
 option(CFWX_SANITIZERS "Enable ASan and UBSan" OFF)
 if(CFWX_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    foreach(target cfwx_core ${BINARY} ${BINARY}_numerical_test_runner ${BINARY}_test_runner)
+    foreach(target cfwx_core cfwx_logger ${BINARY} ${BINARY}_numerical_test_runner ${BINARY}_test_runner)
         if(TARGET ${target})
             target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
             set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS " -fsanitize=address,undefined")
         endif()
     endforeach()
+endif()
+
+# Verify logger injection even without cmocka.
+if(BUILD_TESTING)
+    add_executable(${BINARY}_logger_test_runner ${TESTDIR}/logger_test.c ${SOURCES_EXPERIMENTS})
+    target_link_libraries(${BINARY}_logger_test_runner PRIVATE cfwx_core cfwx_logger)
+    add_test(NAME experiment_logging COMMAND ${BINARY}_logger_test_runner)
+    if(CFWX_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${BINARY}_logger_test_runner PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        set_property(TARGET ${BINARY}_logger_test_runner APPEND_STRING PROPERTY LINK_FLAGS " -fsanitize=address,undefined")
+    endif()
 endif()
 
 # Custom targets for additional functionality

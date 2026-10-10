@@ -123,8 +123,8 @@ void logger_set_level(LogLevel level)
 
 /* Independent context thresholds are checked before reaching this shared sink.
  * va_copy is required because console and file each consume the arguments. */
-static void logger_write(LogLevel level, const char *name, const char *file,
-                         int line, const char *fmt, va_list args)
+static void logger_write(LogLevel level, const char *name, const char *file, int line,
+                         const char *fmt, va_list args)
 {
     char timestamp[64];
     get_timestamp(timestamp, sizeof(timestamp));
@@ -132,8 +132,8 @@ static void logger_write(LogLevel level, const char *name, const char *file,
     va_list copy;
 
     va_copy(copy, args);
-    fprintf(stderr, "%s[%s %s %s %s:%d]%s ", level_colors[level], timestamp,
-            level_strings[level], name, filename, line, color_reset);
+    fprintf(stderr, "%s[%s %s %s %s:%d]%s ", level_colors[level], timestamp, level_strings[level],
+            name, filename, line, color_reset);
     vfprintf(stderr, fmt, copy);
     fprintf(stderr, "\n");
     fflush(stderr);
@@ -142,8 +142,8 @@ static void logger_write(LogLevel level, const char *name, const char *file,
     if (log_file)
     {
         va_copy(copy, args);
-        fprintf(log_file, "[%s %s %s %s:%d] ", timestamp, level_strings[level],
-                name, filename, line);
+        fprintf(log_file, "[%s %s %s %s:%d] ", timestamp, level_strings[level], name, filename,
+                line);
         vfprintf(log_file, fmt, copy);
         fprintf(log_file, "\n");
         fflush(log_file);
@@ -163,8 +163,8 @@ void logger_log(LogLevel level, const char *file, int line, const char *fmt, ...
     va_end(args);
 }
 
-int experiment_logger_init(experiment_logger *logger, const char *name,
-                           LogLevel minimum_level, logger_sink_fn sink, void *user_data)
+int experiment_logger_init(experiment_logger *logger, const char *name, LogLevel minimum_level,
+                           logger_sink_fn sink, void *user_data)
 {
     if (!logger || !name || !name[0] || !valid_level(minimum_level))
         return -1;
@@ -173,8 +173,8 @@ int experiment_logger_init(experiment_logger *logger, const char *name,
     return 0;
 }
 
-void experiment_logger_log(const experiment_logger *logger, LogLevel level,
-                           const char *file, int line, const char *fmt, ...)
+void experiment_logger_log(const experiment_logger *logger, LogLevel level, const char *file,
+                           int line, const char *fmt, ...)
 {
     if (!logger || !logger->experiment_name || !logger->experiment_name[0] ||
         !valid_level(logger->minimum_level) || !valid_level(level) ||
@@ -202,8 +202,8 @@ void experiment_logger_log(const experiment_logger *logger, LogLevel level,
             {
                 int written = vsnprintf(message, (size_t)length + 1, fmt, args);
                 if (written == length)
-                    logger->sink(logger->user_data, logger->experiment_name,
-                                 level, file, line, message);
+                    logger->sink(logger->user_data, logger->experiment_name, level, file, line,
+                                 message);
                 free(message);
             }
         }
