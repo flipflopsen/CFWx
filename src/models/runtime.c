@@ -133,14 +133,17 @@ void cfwx_kv_cache_free(cfwx_kv_cache *cache)
 void cfwx_kv_cache_reset(cfwx_kv_cache *cache)
 {
     if (cache)
+    {
         cache->length = 0;
+        cache->position = 0;
+    }
 }
 
-cfwx_status cfwx_kv_cache_init(cfwx_kv_cache *cache, const cfwx_language_model *model,
-                               size_t capacity)
+cfwx_status cfwx_kv_cache_init_mode(cfwx_kv_cache *cache, const cfwx_language_model *model,
+                                    size_t capacity, cfwx_cache_mode mode)
 {
     if (!cache || cache->model || !model || !model->depth || model->depth > CFWX_MAX_BLOCKS ||
-        !capacity)
+        !capacity || (mode != CFWX_CACHE_FIXED && mode != CFWX_CACHE_SLIDING))
         return CFWX_INVALID;
     cfwx_kv_cache temp = {0};
     for (size_t i = 0; i < model->depth; i++)
@@ -156,18 +159,50 @@ cfwx_status cfwx_kv_cache_init(cfwx_kv_cache *cache, const cfwx_language_model *
     }
     temp.model = model;
     temp.capacity = capacity;
+    temp.mode = mode;
     *cache = temp;
     return CFWX_OK;
 }
 
+cfwx_status cfwx_kv_cache_init(cfwx_kv_cache *cache, const cfwx_language_model *model,
+                               size_t capacity)
+{
+    return cfwx_kv_cache_init_mode(cache, model, capacity, CFWX_CACHE_FIXED);
+}
+
 cfwx_status cfwx_language_model_decode(cfwx_kv_cache *cache, size_t token, cfwx_matrix *logits)
 {
-    if (!cache || !cache->model || cache->length >= cache->capacity)
+    if (!cache || !cache->model || cache->position == SIZE_MAX ||
+        (cache->mode == CFWX_CACHE_FIXED && cache->length >= cache->capacity))
         return CFWX_INVALID;
     const cfwx_language_model *m = cache->model;
     if (token >= m->vocabulary || !logits || !logits->data || logits->rows != 1 ||
         logits->cols != m->vocabulary)
         return CFWX_SHAPE;
+    bool evict = cache->length == cache->capacity;
+    double *backup = NULL;
+    size_t cache_elements = cache->capacity * m->width;
+    if (evict)
+    {
+        size_t total;
+        if (!cfwx_count(cache_elements, 2 * m->depth, &total))
+            return CFWX_INVALID;
+        backup = malloc(total * sizeof(double));
+        if (!backup)
+            return CFWX_ALLOC;
+        for (size_t layer = 0; layer < m->depth; layer++)
+        {
+            memcpy(backup + 2 * layer * cache_elements, cache->keys[layer].data,
+                   cache_elements * sizeof(double));
+            memcpy(backup + (2 * layer + 1) * cache_elements, cache->values[layer].data,
+                   cache_elements * sizeof(double));
+            memmove(cache->keys[layer].data, cache->keys[layer].data + m->width,
+                    (cache_elements - m->width) * sizeof(double));
+            memmove(cache->values[layer].data, cache->values[layer].data + m->width,
+                    (cache_elements - m->width) * sizeof(double));
+        }
+        cache->length--;
+    }
     cfwx_matrix x = {0}, positions = {0}, norm = {0}, q = {0}, k = {0}, v = {0}, joined = {0},
                 branch = {0}, residual = {0};
     cfwx_matrix *buffers[] = {&x, &positions, &norm, &q, &k, &v, &joined, &branch, &residual};
@@ -178,7 +213,7 @@ cfwx_status cfwx_language_model_decode(cfwx_kv_cache *cache, size_t token, cfwx_
         goto cleanup;
     s = cfwx_embedding(&m->embeddings, &token, 1, &x);
     if (s == CFWX_OK)
-        s = cfwx_sinusoidal_positions(cache->length, &positions);
+        s = cfwx_sinusoidal_positions(cache->position, &positions);
     if (s == CFWX_OK)
         s = cfwx_residual_add(&x, &positions, &x);
     for (size_t layer = 0; layer < m->depth && s == CFWX_OK; layer++)
@@ -257,8 +292,23 @@ cfwx_status cfwx_language_model_decode(cfwx_kv_cache *cache, size_t token, cfwx_
     if (s == CFWX_OK)
         s = cfwx_dense_forward(&m->head, &norm, logits);
     if (s == CFWX_OK)
+    {
         cache->length++;
+        cache->position++;
+    }
 cleanup:
+    if (evict && s != CFWX_OK)
+    {
+        for (size_t layer = 0; layer < m->depth; layer++)
+        {
+            memcpy(cache->keys[layer].data, backup + 2 * layer * cache_elements,
+                   cache_elements * sizeof(double));
+            memcpy(cache->values[layer].data, backup + (2 * layer + 1) * cache_elements,
+                   cache_elements * sizeof(double));
+        }
+        cache->length++;
+    }
+    free(backup);
     for (size_t i = 0; i < 9; i++)
         cfwx_matrix_free(buffers[i]);
     return s;

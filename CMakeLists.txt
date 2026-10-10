@@ -257,3 +257,13 @@ endif()
 
 # CUDA is explicitly opt-in; no CUDA configuration in ordinary CPU builds.
 include(cmake/cuda_backend.cmake)
+
+if(BUILD_TESTING)
+    add_executable(cfwx_cache_options test/cache_options.c)
+    target_link_libraries(cfwx_cache_options PRIVATE cfwx_core)
+    add_test(NAME cache_options COMMAND cfwx_cache_options)
+    if(CFWX_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(cfwx_cache_options PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        set_property(TARGET cfwx_cache_options APPEND_STRING PROPERTY LINK_FLAGS " -fsanitize=address,undefined")
+    endif()
+endif()

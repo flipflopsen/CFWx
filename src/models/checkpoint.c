@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 typedef struct
 {
@@ -167,6 +169,31 @@ static bool architecture(size_t v, size_t w, size_t h, size_t hidden, size_t d)
     return parameters * 24 < 268435456;
 }
 
+/* Rename persistence requires syncing the directory entry as well as payload. */
+static bool fsync_parent(const char *path)
+{
+    size_t n = strlen(path);
+    char *parent = malloc(n + 2);
+    if (!parent)
+        return false;
+    memcpy(parent, path, n + 1);
+    char *slash = strrchr(parent, '/');
+    if (!slash)
+        strcpy(parent, ".");
+    else if (slash == parent)
+        slash[1] = '\0';
+    else
+        *slash = '\0';
+    int fd = open(parent, O_RDONLY | O_DIRECTORY);
+    free(parent);
+    if (fd < 0)
+        return false;
+    bool ok = fsync(fd) == 0;
+    if (close(fd) != 0)
+        ok = false;
+    return ok;
+}
+
 cfwx_status cfwx_checkpoint_save(const char *path, cfwx_language_model *m,
                                  const cfwx_adamw *optimizer, const cfwx_training_state *state)
 {
@@ -185,11 +212,17 @@ cfwx_status cfwx_checkpoint_save(const char *path, cfwx_language_model *m,
     if (status != CFWX_OK)
         return status;
     size_t n = strlen(path);
-    char *temp = malloc(n + 5);
+    char *temp = malloc(n + 12);
     if (!temp)
         return CFWX_ALLOC;
-    snprintf(temp, n + 5, "%s.tmp", path);
-    FILE *file = fopen(temp, "wb");
+    snprintf(temp, n + 12, "%s.tmp.XXXXXX", path);
+    int descriptor = mkstemp(temp);
+    FILE *file = descriptor >= 0 ? fdopen(descriptor, "wb") : NULL;
+    if (!file && descriptor >= 0)
+    {
+        close(descriptor);
+        remove(temp);
+    }
     if (!file)
     {
         free(temp);
@@ -213,9 +246,18 @@ cfwx_status cfwx_checkpoint_save(const char *path, cfwx_language_model *m,
     bool ok = footer(&s);
     if (fflush(file) != 0)
         ok = false;
+    if (ok && fsync(fileno(file)) != 0)
+        ok = false;
     if (fclose(file) != 0)
         ok = false;
-    if (ok && rename(temp, path) != 0)
+    bool renamed = false;
+    if (ok)
+    {
+        renamed = rename(temp, path) == 0;
+        ok = renamed;
+    }
+    /* Failure here may leave the new checkpoint visible, but durability uncertain. */
+    if (renamed && !fsync_parent(path))
         ok = false;
     if (!ok)
         remove(temp);

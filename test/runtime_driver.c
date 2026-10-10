@@ -27,7 +27,7 @@ static uint64_t next(uint64_t *s)
 }
 
 static int generate(const experiment_logger *logger, const char *path, const char *prompt,
-                    size_t count)
+                    size_t count, size_t window, cfwx_cache_mode mode)
 {
     cfwx_language_model m = {0};
     cfwx_adamw o = {0};
@@ -39,7 +39,7 @@ static int generate(const experiment_logger *logger, const char *path, const cha
     if (s == CFWX_OK && (!length || length > SIZE_MAX - count))
         s = CFWX_INVALID;
     if (s == CFWX_OK)
-        s = cfwx_kv_cache_init(&cache, &m, length + count);
+        s = cfwx_kv_cache_init_mode(&cache, &m, window ? window : length + count, mode);
     if (s == CFWX_OK)
         s = cfwx_matrix_init(&logits, 1, m.vocabulary);
     for (size_t i = 0; i < length && s == CFWX_OK; i++)
@@ -220,22 +220,59 @@ static int train(const experiment_logger *logger, const char *dataset, const cha
     return status == CFWX_OK ? 0 : 1;
 }
 
+/* Stable identifier flag resolves to NAME.ckpt in the working directory. */
+static bool checkpoint_name(const char *name, char *path, size_t capacity)
+{
+    size_t n = strlen(name);
+    if (!n || n > 100 || n + 6 > capacity)
+        return false;
+    for (size_t i = 0; i < n; i++)
+        if (!((name[i] >= 'a' && name[i] <= 'z') || (name[i] >= 'A' && name[i] <= 'Z') ||
+              (name[i] >= '0' && name[i] <= '9') || name[i] == '_' || name[i] == '-'))
+            return false;
+    snprintf(path, capacity, "%s.ckpt", name);
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     experiment_logger logger;
     if (experiment_logger_init(&logger, "transformer.runtime", LOG_INFO, NULL, NULL) != 0)
         return 1;
     size_t count;
+    if (argc == 7 && (!strcmp(argv[1], "train") || !strcmp(argv[1], "resume")) &&
+        !strcmp(argv[3], "--checkpoint-name") && number(argv[5], &count) && !strcmp(argv[6], "cpu"))
+    {
+        char path[128];
+        if (!checkpoint_name(argv[4], path, sizeof(path)))
+            return 1;
+        return train(&logger, argv[2], path, count, !strcmp(argv[1], "resume"));
+    }
     if (argc == 6 && (!strcmp(argv[1], "train") || !strcmp(argv[1], "resume")) &&
         number(argv[4], &count) && !strcmp(argv[5], "cpu"))
         return train(&logger, argv[2], argv[3], count, !strcmp(argv[1], "resume"));
+    if (argc == 7 && !strcmp(argv[1], "generate") && number(argv[4], &count))
+    {
+        size_t window;
+        if (!number(argv[6], &window))
+            return 1;
+        cfwx_cache_mode mode;
+        if (!strcmp(argv[5], "sliding"))
+            mode = CFWX_CACHE_SLIDING;
+        else if (!strcmp(argv[5], "fixed"))
+            mode = CFWX_CACHE_FIXED;
+        else
+            return 1;
+        return generate(&logger, argv[2], argv[3], count, window, mode);
+    }
     if (argc == 5 && !strcmp(argv[1], "generate") && number(argv[4], &count))
-        return generate(&logger, argv[2], argv[3], count);
+        return generate(&logger, argv[2], argv[3], count, 0, CFWX_CACHE_FIXED);
     fprintf(stderr,
             "Usage:\n %s train DATA CHECKPOINT STEPS cpu\n %s resume DATA CHECKPOINT MORE_STEPS "
             "cpu\n %s generate CHECKPOINT PROMPT TOKENS\n",
             argv[0], argv[0], argv[0]);
     fprintf(stderr,
-            "Only the tested CPU backend is available; GPU requests are not silently emulated.\n");
+            "Stable-name syntax: train/resume DATA --checkpoint-name NAME STEPS cpu.\nOnly the "
+            "tested CPU backend is available; GPU requests are not silently emulated.\n");
     return 1;
 }

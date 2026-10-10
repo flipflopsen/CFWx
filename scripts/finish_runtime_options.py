@@ -30,7 +30,8 @@ endif()
  p.write_text(s)
 # Account for segment metadata in device budget, including allocation after model create.
 p=Path('src/gpu/cuda_training.cu');s=p.read_text()
-s=s.replace('tokens * sizeof(size_t) + sizeof(int)', 'tokens * sizeof(size_t) + sizeof(int) + m->config.batch * sizeof(Segment)')
+if 'm->config.batch * sizeof(Segment)' not in s:
+ s=s.replace('tokens * sizeof(size_t) + sizeof(int)', 'tokens * sizeof(size_t) + sizeof(int) + m->config.batch * sizeof(Segment)')
 p.write_text(s)
 import subprocess
 subprocess.run(['clang-format','-i','test/runtime_driver.c','test/cache_options.c','test/cuda_manual.c','src/gpu/cuda_training.cu'],check=True)

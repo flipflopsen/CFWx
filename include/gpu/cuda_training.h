@@ -26,6 +26,10 @@ extern "C"
      * Requires positive dimensions, width%heads==0, dropout in [0,1), depth<=8. */
     int cfwx_cuda_create(const cfwx_cuda_config *config, cfwx_cuda_model **out, char *error,
                          size_t error_capacity);
+    /* Opt-in launch-fused sequence parallelism; serial interpreter is default.
+     * FP64 atomics make gradient reduction order nondeterministic. Not fused GEMM.
+     * Set before a run; model calls remain single-threaded. */
+    int cfwx_cuda_set_fused_batching(cfwx_cuda_model *model, int enabled);
     void cfwx_cuda_free(cfwx_cuda_model *model);
     const char *cfwx_cuda_error(const cfwx_cuda_model *model);
     size_t cfwx_cuda_parameter_count(const cfwx_cuda_model *model);

@@ -36,6 +36,12 @@ struct Node
     int op, a, b;
     double constant;
 };
+struct Segment
+{
+    size_t begin, end;
+    uint64_t rng_offset;
+};
+
 struct Dense
 {
     size_t in, out, weight, bias;
@@ -49,6 +55,8 @@ struct cfwx_cuda_model
 {
     cfwx_cuda_config config{};
     cudaStream_t stream = nullptr;
+    bool fused = false;
+    Segment *segments = nullptr;
     double *parameters = nullptr, *gradients = nullptr, *first = nullptr, *second = nullptr;
     Node *nodes = nullptr;
     double *value = nullptr, *adjoint = nullptr;
@@ -227,6 +235,168 @@ __global__ static void backward(const Node *nodes, size_t n, const double *v, do
         }
 }
 
+__global__ static void fused_forward(const Node *nodes, size_t n, const Segment *segments,
+                                     size_t batch, double *v, const double *p, const size_t *tokens,
+                                     size_t width, size_t vocabulary, bool training, uint64_t rng,
+                                     double *dropmask, int *status)
+{
+    size_t sample = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (sample >= batch)
+        return;
+    Segment segment = segments[sample];
+    rng += UINT64_C(0x9e3779b97f4a7c15) * segment.rng_offset;
+    for (size_t i = segment.begin; i < segment.end; i++)
+    {
+        Node x = nodes[i];
+        bool parents = x.op != CONSTANT && x.op != PARAMETER && x.op != LOOKUP;
+        double a = parents && x.a >= 0 ? v[x.a] : 0.0, b = parents && x.b >= 0 ? v[x.b] : 0.0,
+               y = 0.0;
+        switch (x.op)
+        {
+        case CONSTANT:
+            y = x.constant;
+            break;
+        case PARAMETER:
+            y = p[x.a];
+            break;
+        case LOOKUP:
+            if (tokens[x.a] >= vocabulary)
+            {
+                atomicExch(status, 1);
+                return;
+            }
+            y = p[tokens[x.a] * width + (size_t)x.b];
+            break;
+        case ADD:
+            y = a + b;
+            break;
+        case SUB:
+            y = a - b;
+            break;
+        case MUL:
+            y = a * b;
+            break;
+        case DIV:
+            y = a / b;
+            break;
+        case EXP:
+            y = exp(a);
+            break;
+        case LOG:
+            y = log(a);
+            break;
+        case ROOT:
+            y = sqrt(a);
+            break;
+        case GELU:
+            y = 0.5 * a * (1.0 + erf(a * 0.7071067811865475244));
+            break;
+        case MAXIMUM:
+            y = fmax(a, b);
+            break;
+        case DROP:
+            dropmask[i] = training && x.constant > 0.0
+                              ? ((double)(next_random(rng) >> 11) * 0x1.0p-53 < x.constant
+                                     ? 0.0
+                                     : 1.0 / (1.0 - x.constant))
+                              : 1.0;
+            y = a * dropmask[i];
+            break;
+        }
+        if (!isfinite(y))
+        {
+            atomicExch(status, 2);
+            return;
+        }
+        v[i] = y;
+    }
+}
+
+__global__ static void fused_backward(const Node *nodes, size_t n, const Segment *segments,
+                                      size_t batch, const double *v, double *g, double *dp,
+                                      const size_t *tokens, size_t width, size_t parameter_count,
+                                      bool training, const double *dropmask, int *status)
+{
+    size_t sample = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (sample >= batch || *status)
+        return;
+    Segment segment = segments[sample];
+    for (size_t i = segment.begin; i < segment.end; i++)
+        g[i] = 0.0;
+    g[segment.end - 1] = 1.0 / (double)batch;
+    for (size_t i = segment.end; i-- > segment.begin;)
+    {
+        Node x = nodes[i];
+        double u = g[i];
+        bool parents = x.op != CONSTANT && x.op != PARAMETER && x.op != LOOKUP;
+        double a = parents && x.a >= 0 ? v[x.a] : 0.0, b = parents && x.b >= 0 ? v[x.b] : 0.0;
+        switch (x.op)
+        {
+        case PARAMETER:
+            atomicAdd(&dp[x.a], u);
+            break;
+        case LOOKUP:
+            atomicAdd(&dp[tokens[x.a] * width + (size_t)x.b], u);
+            break;
+        case ADD:
+            g[x.a] += u;
+            g[x.b] += u;
+            break;
+        case SUB:
+            g[x.a] += u;
+            g[x.b] -= u;
+            break;
+        case MUL:
+            g[x.a] += u * b;
+            g[x.b] += u * a;
+            break;
+        case DIV:
+            g[x.a] += u / b;
+            g[x.b] -= u * a / (b * b);
+            break;
+        case EXP:
+            g[x.a] += u * v[i];
+            break;
+        case LOG:
+            g[x.a] += u / a;
+            break;
+        case ROOT:
+            g[x.a] += u * 0.5 / v[i];
+            break;
+        case GELU:
+            g[x.a] += u * (0.5 * (1 + erf(a * 0.7071067811865475244)) +
+                           a * exp(-0.5 * a * a) * 0.39894228040143267794);
+            break;
+        case DROP:
+            g[x.a] += u * dropmask[i];
+            break;
+        /* Detached max shift has zero adjoint. Shift contributions cancel
+         * exactly in softmax/log-sum-exp, including maximum ties. */
+        case MAXIMUM:
+            break;
+        default:
+            break;
+        }
+        if (!isfinite(u))
+        {
+            atomicExch(status, 3);
+            return;
+        }
+    }
+}
+
+/* Loss reduction is separate from sequence graphs: reverse does not traverse
+ * the final serial reduction, avoiding duplicate gradient contributions. */
+__global__ static void fused_loss(double *values, size_t n, const Segment *segments, size_t batch)
+{
+    if (blockIdx.x || threadIdx.x)
+        return;
+    double sum = 0.0;
+    for (size_t i = 0; i < batch; i++)
+        sum += values[segments[i].end - 1];
+    values[n - 1] = sum / (double)batch;
+}
+
 __global__ static void clip_gradients(double *g, size_t n, double maximum, int *status)
 {
     if (blockIdx.x || threadIdx.x || *status)
@@ -304,6 +474,8 @@ struct Graph
 {
     cfwx_cuda_model &model;
     std::vector<Node> nodes;
+    std::vector<Segment> segments;
+    uint64_t rng_offset = 0;
     int add(int op, int a = -1, int b = -1, double value = 0.0)
     {
         if (nodes.size() >= model.config.max_nodes || nodes.size() >= INT_MAX)
@@ -373,6 +545,8 @@ struct Graph
          * No CPU per-sequence forward/backward accumulation or numeric fallback. */
         for (size_t batch = 0; batch < model.config.batch; batch++)
         {
+            size_t begin = nodes.size();
+            size_t loss_begin = losses.size();
             std::vector<std::vector<int>> x(T, std::vector<int>(width));
             for (size_t t = 0; t < T; t++)
                 for (size_t j = 0; j < width; j++)
@@ -442,6 +616,12 @@ struct Graph
                     add(ADD, add(SUB, max, logits[targets[batch * T + t]]), add(LOG, sum(e)));
                 losses.push_back(loss);
             }
+            std::vector<int> sample_losses(losses.begin() + loss_begin, losses.end());
+            add(DIV, sum(sample_losses), constant((double)sample_losses.size()));
+            segments.push_back(Segment{begin, nodes.size(), rng_offset});
+            for (size_t i = begin; i < nodes.size(); i++)
+                if (nodes[i].op == DROP && nodes[i].constant > 0.0)
+                    rng_offset++;
         }
         add(DIV, sum(losses), constant((double)losses.size()));
     }
@@ -461,6 +641,7 @@ extern "C" void cfwx_cuda_free(cfwx_cuda_model *m)
         return;
     if (m->stream)
         cudaStreamSynchronize(m->stream);
+    cudaFree(m->segments);
     cudaFree(m->parameters);
     cudaFree(m->gradients);
     cudaFree(m->first);
@@ -526,6 +707,7 @@ extern "C" int cfwx_cuda_create(const cfwx_cuda_config *c, cfwx_cuda_model **out
         cuda_check(cudaMalloc((void **)&m->gradients, m->count * sizeof(double)));
         cuda_check(cudaMalloc((void **)&m->first, m->count * sizeof(double)));
         cuda_check(cudaMalloc((void **)&m->second, m->count * sizeof(double)));
+        cuda_check(cudaMalloc((void **)&m->segments, c->batch * sizeof(Segment)));
         cuda_check(cudaMalloc((void **)&m->tokens, c->batch * c->context * sizeof(size_t)));
         cuda_check(cudaMalloc((void **)&m->status, sizeof(int)));
         cuda_check(cudaMemcpyAsync(m->parameters, m->initial.data(), m->count * sizeof(double),
@@ -564,7 +746,8 @@ extern "C" int cfwx_cuda_run(cfwx_cuda_model *m, const size_t *ids, const size_t
         graph.build(targets);
         size_t n = graph.nodes.size();
         size_t bytes = product(n, sizeof(Node) + 3 * sizeof(double));
-        size_t fixed = m->count * 32 + tokens * sizeof(size_t) + sizeof(int);
+        size_t fixed = m->count * 32 + tokens * sizeof(size_t) + sizeof(int) +
+                       m->config.batch * sizeof(Segment);
         if (fixed > m->config.device_budget_bytes || bytes > m->config.device_budget_bytes - fixed)
             throw std::runtime_error("device tape budget exceeded");
         if (n > m->capacity)
@@ -589,15 +772,36 @@ extern "C" int cfwx_cuda_run(cfwx_cuda_model *m, const size_t *ids, const size_t
                                    cudaMemcpyHostToDevice, m->stream));
         cuda_check(cudaMemcpyAsync(m->tokens, ids, tokens * sizeof(size_t), cudaMemcpyHostToDevice,
                                    m->stream));
-        forward<<<1, 1, 0, m->stream>>>(m->nodes, n, m->value, m->parameters, m->tokens,
-                                        m->config.width, m->config.vocabulary, training != 0,
-                                        m->rng, m->dropmask, m->status);
+        cuda_check(cudaMemsetAsync(m->status, 0, sizeof(int), m->stream));
+        if (m->fused)
+        {
+            cuda_check(cudaMemcpyAsync(m->segments, graph.segments.data(),
+                                       graph.segments.size() * sizeof(Segment),
+                                       cudaMemcpyHostToDevice, m->stream));
+            fused_forward<<<(unsigned)((m->config.batch + 31) / 32), 32, 0, m->stream>>>(
+                m->nodes, n, m->segments, m->config.batch, m->value, m->parameters, m->tokens,
+                m->config.width, m->config.vocabulary, training != 0, m->rng, m->dropmask,
+                m->status);
+            fused_loss<<<1, 1, 0, m->stream>>>(m->value, n, m->segments, m->config.batch);
+        }
+        else
+            forward<<<1, 1, 0, m->stream>>>(m->nodes, n, m->value, m->parameters, m->tokens,
+                                            m->config.width, m->config.vocabulary, training != 0,
+                                            m->rng, m->dropmask, m->status);
         cuda_check(cudaGetLastError());
         if (training)
         {
-            backward<<<1, 1, 0, m->stream>>>(m->nodes, n, m->value, m->adjoint, m->gradients,
-                                             m->tokens, m->config.width, m->count, true,
-                                             m->dropmask, m->status);
+            if (m->fused)
+            {
+                cuda_check(cudaMemsetAsync(m->gradients, 0, m->count * sizeof(double), m->stream));
+                fused_backward<<<(unsigned)((m->config.batch + 31) / 32), 32, 0, m->stream>>>(
+                    m->nodes, n, m->segments, m->config.batch, m->value, m->adjoint, m->gradients,
+                    m->tokens, m->config.width, m->count, true, m->dropmask, m->status);
+            }
+            else
+                backward<<<1, 1, 0, m->stream>>>(m->nodes, n, m->value, m->adjoint, m->gradients,
+                                                 m->tokens, m->config.width, m->count, true,
+                                                 m->dropmask, m->status);
             cuda_check(cudaGetLastError());
             if (rate > 0)
             {
@@ -678,4 +882,12 @@ extern "C" int cfwx_cuda_set_parameters(cfwx_cuda_model *m, const double *values
         m->error = e.what();
         return 1;
     }
+}
+
+extern "C" int cfwx_cuda_set_fused_batching(cfwx_cuda_model *model, int enabled)
+{
+    if (!model || model->poisoned)
+        return 1;
+    model->fused = enabled != 0;
+    return 0;
 }

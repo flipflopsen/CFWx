@@ -18,6 +18,9 @@ static int test(const experiment_logger *logger)
         return 1;
     }
     const size_t ids[] = {0, 1, 2, 1, 2, 0}, targets[] = {1, 2, 0, 2, 0, 1};
+    const char *fused = getenv("CFWX_CUDA_FUSED_BATCH");
+    if (fused && strcmp(fused, "1") == 0)
+        cfwx_cuda_set_fused_batching(m, 1);
     size_t count = cfwx_cuda_parameter_count(m);
     double *p = malloc(count * sizeof(double)), *g = malloc(count * sizeof(double));
     int result = 1;
@@ -105,6 +108,9 @@ static int train(const experiment_logger *logger, const char *path, size_t steps
         free(data);
         return 1;
     }
+    const char *fused = getenv("CFWX_CUDA_FUSED_BATCH");
+    if (fused && strcmp(fused, "1") == 0)
+        cfwx_cuda_set_fused_batching(m, 1);
     size_t ids[32], targets[32];
     double loss = 0;
     int result = 0;

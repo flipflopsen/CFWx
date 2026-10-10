@@ -52,14 +52,26 @@ cfwx_status cfwx_checkpoint_load(const char *path, cfwx_language_model *model,
  * updating model weights invalidates cache: reset/reinitialize after training.
  * Token positions increase monotonically, no sliding-window eviction.
  * Reset starts a new sequence without reallocating. One cache per sequence. */
+typedef enum
+{
+    CFWX_CACHE_FIXED,
+    CFWX_CACHE_SLIDING
+} cfwx_cache_mode;
+
 typedef struct
 {
     const cfwx_language_model *model;
     size_t capacity, length;
+    size_t position; /* Absolute position; does not reset on eviction. */
+    cfwx_cache_mode mode;
     cfwx_matrix keys[CFWX_MAX_BLOCKS], values[CFWX_MAX_BLOCKS];
 } cfwx_kv_cache;
 cfwx_status cfwx_kv_cache_init(cfwx_kv_cache *cache, const cfwx_language_model *model,
                                size_t capacity);
+/* Configurable mode; legacy init defaults to fixed. Sliding evicts oldest K/V
+ * only when full. On failed full append committed entries are restored. */
+cfwx_status cfwx_kv_cache_init_mode(cfwx_kv_cache *cache, const cfwx_language_model *model,
+                                    size_t capacity, cfwx_cache_mode mode);
 void cfwx_kv_cache_reset(cfwx_kv_cache *cache);
 void cfwx_kv_cache_free(cfwx_kv_cache *cache);
 /* Append one token, compute logits [1,vocabulary] for the next-token distribution.
