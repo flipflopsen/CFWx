@@ -1,3 +1,5 @@
+/* Legacy console/file backend with explicitly injected experiment contexts. */
+
 #include "util/logger.h"
 #include <stdlib.h>
 #include <string.h>
@@ -13,53 +15,59 @@
 #include <unistd.h>
 #endif
 
-// Global logger state
+/* Backend lifecycle belongs to the application, not to experiments. */
 static FILE *log_file = NULL;
 static LogLevel current_level = LOG_DEBUG;
-static const char *level_strings[] = {
-    "DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
-
-// ANSI color codes for console output
+static const char *level_strings[] = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
 static const char *level_colors[] = {
-    "\x1b[36m", // DEBUG - Cyan
-    "\x1b[32m", // INFO - Green
-    "\x1b[33m", // WARNING - Yellow
-    "\x1b[31m", // ERROR - Red
-    "\x1b[35m"  // FATAL - Magenta
+    "\x1b[36m", /* DEBUG: cyan */
+    "\x1b[32m", /* INFO: green */
+    "\x1b[33m", /* WARNING: yellow */
+    "\x1b[31m", /* ERROR: red */
+    "\x1b[35m"  /* FATAL: magenta */
 };
 static const char *color_reset = "\x1b[0m";
 
-// Get current timestamp string
+static bool valid_level(LogLevel level)
+{
+    return level >= LOG_DEBUG && level <= LOG_FATAL;
+}
+
 static void get_timestamp(char *buffer, size_t size)
 {
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
-    strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info);
+
+    /* Clock failures must not leave an uninitialized timestamp. */
+    if (!tm_info || strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info) == 0)
+        snprintf(buffer, size, "unknown-time");
 }
 
-// Extract filename from full path
 static const char *get_filename(const char *path)
 {
+    if (!path)
+        return "unknown";
+
     const char *filename = strrchr(path, '/');
     if (!filename)
-    {
         filename = strrchr(path, '\\');
-    }
+
     return filename ? filename + 1 : path;
 }
 
 int logger_init(const char *log_folder, const char *log_filename, bool debug)
 {
-    const char *project_root = PROJECT_ROOT;
+    /* Do not leak an already initialized backend on a repeated init call. */
+    if (!log_folder || !log_filename || log_file)
+        return -1;
 
-    // Full folder path
-    size_t folder_len = strlen(project_root) + 1 + strlen(log_folder) + 1; // +1 for '/' and +1 for '\0'
+    const char *project_root = PROJECT_ROOT;
+    size_t folder_len = strlen(project_root) + strlen(log_folder) + 2;
     char *folder_path = malloc(folder_len);
     if (!folder_path)
         return -1;
-    snprintf(folder_path, folder_len, "%s/%s", project_root, log_folder);
 
-    // Create folder if it doesn't exist
+    snprintf(folder_path, folder_len, "%s/%s", project_root, log_folder);
     if (mkdir(folder_path, 0755) != 0 && errno != EEXIST)
     {
         perror("mkdir() error");
@@ -67,45 +75,28 @@ int logger_init(const char *log_folder, const char *log_filename, bool debug)
         return -1;
     }
 
-    // Full filename
     const char *suffix = debug ? "_debug.log" : ".log";
-    size_t filename_len = strlen(log_filename) + strlen(suffix) + 1;
-    char *filename = malloc(filename_len);
-    if (!filename)
-    {
-        free(folder_path);
-        return -1;
-    }
-    snprintf(filename, filename_len, "%s%s", log_filename, suffix);
-
-    // Full path
-    size_t full_len = strlen(folder_path) + 1 + strlen(filename) + 1;
+    size_t full_len = strlen(folder_path) + strlen(log_filename) + strlen(suffix) + 2;
     char *full_path = malloc(full_len);
     if (!full_path)
     {
         free(folder_path);
-        free(filename);
         return -1;
     }
-    snprintf(full_path, full_len, "%s/%s", folder_path, filename);
 
-    // Open log file
+    snprintf(full_path, full_len, "%s/%s%s", folder_path, log_filename, suffix);
     log_file = fopen(full_path, "a");
     if (!log_file)
     {
         fprintf(stderr, "Failed to open log file %s: %s\n", full_path, strerror(errno));
         free(folder_path);
-        free(filename);
         free(full_path);
         return -1;
     }
 
     fprintf(log_file, "[INFO] Logger initialized - writing to %s\n", full_path);
     fflush(log_file);
-
-    // Clean up
     free(folder_path);
-    free(filename);
     free(full_path);
 
     return 0;
@@ -123,46 +114,99 @@ void logger_cleanup(void)
 
 void logger_set_level(LogLevel level)
 {
-    if (level >= LOG_DEBUG && level <= LOG_FATAL)
+    if (valid_level(level))
     {
         current_level = level;
         LOG_INFO("Log level set to %s", level_strings[level]);
     }
 }
 
-void logger_log(LogLevel level, const char *file, int line, const char *fmt, ...)
+/* Independent context thresholds are checked before reaching this shared sink.
+ * va_copy is required because console and file each consume the arguments. */
+static void logger_write(LogLevel level, const char *name, const char *file,
+                         int line, const char *fmt, va_list args)
 {
-    if (level < current_level)
-    {
-        return;
-    }
-
     char timestamp[64];
     get_timestamp(timestamp, sizeof(timestamp));
-
     const char *filename = get_filename(file);
+    va_list copy;
 
-    va_list args;
-
-    // Log to console with colors
-    va_start(args, fmt);
-    fprintf(stderr, "%s[%s %s %s:%d]%s ",
-            level_colors[level], timestamp, level_strings[level],
-            filename, line, color_reset);
-    vfprintf(stderr, fmt, args);
+    va_copy(copy, args);
+    fprintf(stderr, "%s[%s %s %s %s:%d]%s ", level_colors[level], timestamp,
+            level_strings[level], name, filename, line, color_reset);
+    vfprintf(stderr, fmt, copy);
     fprintf(stderr, "\n");
     fflush(stderr);
-    va_end(args);
+    va_end(copy);
 
-    // Log to file (without colors)
     if (log_file)
     {
-        va_start(args, fmt);
-        fprintf(log_file, "[%s %s %s:%d] ",
-                timestamp, level_strings[level], filename, line);
-        vfprintf(log_file, fmt, args);
+        va_copy(copy, args);
+        fprintf(log_file, "[%s %s %s %s:%d] ", timestamp, level_strings[level],
+                name, filename, line);
+        vfprintf(log_file, fmt, copy);
         fprintf(log_file, "\n");
         fflush(log_file);
-        va_end(args);
+        va_end(copy);
     }
+}
+
+void logger_log(LogLevel level, const char *file, int line, const char *fmt, ...)
+{
+    /* Validate before indexing level/color arrays. */
+    if (!valid_level(level) || level < current_level || !fmt)
+        return;
+
+    va_list args;
+    va_start(args, fmt);
+    logger_write(level, "application", file, line, fmt, args);
+    va_end(args);
+}
+
+int experiment_logger_init(experiment_logger *logger, const char *name,
+                           LogLevel minimum_level, logger_sink_fn sink, void *user_data)
+{
+    if (!logger || !name || !name[0] || !valid_level(minimum_level))
+        return -1;
+
+    *logger = (experiment_logger){name, minimum_level, sink, user_data};
+    return 0;
+}
+
+void experiment_logger_log(const experiment_logger *logger, LogLevel level,
+                           const char *file, int line, const char *fmt, ...)
+{
+    if (!logger || !logger->experiment_name || !logger->experiment_name[0] ||
+        !valid_level(logger->minimum_level) || !valid_level(level) ||
+        level < logger->minimum_level || !fmt)
+        return;
+
+    va_list args;
+    va_start(args, fmt);
+    if (!logger->sink)
+    {
+        logger_write(level, logger->experiment_name, file, line, fmt, args);
+    }
+    else
+    {
+        /* Two-pass formatting avoids silently truncating a captured message.
+         * Allocation/formatting failures drop the log, never alter results. */
+        va_list copy;
+        va_copy(copy, args);
+        int length = vsnprintf(NULL, 0, fmt, copy);
+        va_end(copy);
+        if (length >= 0)
+        {
+            char *message = malloc((size_t)length + 1);
+            if (message)
+            {
+                int written = vsnprintf(message, (size_t)length + 1, fmt, args);
+                if (written == length)
+                    logger->sink(logger->user_data, logger->experiment_name,
+                                 level, file, line, message);
+                free(message);
+            }
+        }
+    }
+    va_end(args);
 }

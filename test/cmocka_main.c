@@ -1,3 +1,5 @@
+/* cmocka smoke tests for injected experiments and stable extreme logits. */
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -11,7 +13,11 @@
 static void numerical_experiment_success(void **state)
 {
     (void)state;
-    assert_int_equal(numerical_runner(), EXIT_SUCCESS);
+    experiment_logger logger;
+    assert_int_equal(experiment_logger_init(&logger, "test.numerical.softmax",
+                                           LOG_WARNING, NULL, NULL), 0);
+    assert_int_equal(numerical_runner(&logger), EXIT_SUCCESS);
+    assert_int_equal(numerical_runner(NULL), EXIT_FAILURE);
 }
 
 static void softmax_extreme_logits(void **state)

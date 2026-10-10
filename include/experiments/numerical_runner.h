@@ -1,8 +1,12 @@
+/* Numerical experiment entry point and injected logger lifetime contract. */
+
 #ifndef CFWX_NUMERICAL_RUNNER_H
 #define CFWX_NUMERICAL_RUNNER_H
 
-/* Run the numerical softmax experiment. Returns EXIT_SUCCESS/EXIT_FAILURE.
- * Does not initialize logging or terminate the process. */
-int numerical_runner(void);
+#include "util/logger.h"
+
+/* The logger is borrowed. Invalid/NULL contexts fail; the caller owns backend
+ * initialization and cleanup. The runner returns EXIT_SUCCESS/EXIT_FAILURE. */
+int numerical_runner(const experiment_logger *logger);
 
 #endif
