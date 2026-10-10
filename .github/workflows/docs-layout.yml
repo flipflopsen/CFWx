@@ -1,0 +1,40 @@
+name: Consolidate repository docs and validate references
+on:
+  push:
+    branches: [feature/implement_basics]
+    paths: [scripts/consolidate_docs.py, scripts/check_docs_layout.py, .github/workflows/docs-layout.yml]
+permissions:
+  contents: write
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/implement_basics
+      - name: Relocate documentation and repair references
+        run: |
+          python scripts/consolidate_docs.py
+          python scripts/check_docs_layout.py
+      - name: Install Doxygen tools only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+      # CUDA is parsed as text only. No CUDA configure/compiler/probe/execution.
+      - name: Validate relocated API reference
+        run: |
+          doxygen doxygen_docs/Doxyfile
+          python scripts/check_doxygen.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfwx-relocated-doxygen
+          path: doxygen_docs/generated/
+      - name: Commit relocation including removed legacy paths
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Consolidate Markdown under docs and Doxygen assets under doxygen_docs'
+            git push origin HEAD:feature/implement_basics
+          fi
