@@ -3,3 +3,5 @@ build/
 build-*/
 .cache/
 log/*.log
+*.ckpt
+*.ckpt.tmp
