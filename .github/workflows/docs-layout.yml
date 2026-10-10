@@ -16,12 +16,13 @@ jobs:
         run: |
           python scripts/consolidate_docs.py
           python scripts/check_docs_layout.py
+          # Workflow edits are applied separately through an authorized integration.
+          git restore .github/workflows
       - name: Install Doxygen tools only
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen graphviz
-      # NO CUDA configure/compiler/probe/execution.
-      - name: Validate relocated API reference
+      - name: Validate relocated reference (no CUDA execution)
         run: |
           doxygen doxygen_docs/Doxyfile
           python scripts/check_doxygen.py
