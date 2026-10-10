@@ -2,23 +2,64 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C/C++ Runner: Debug Session",
-      "type": "cppdbg",
-      "request": "launch",
-      "args": [],
-      "stopAtEntry": false,
-      "externalConsole": false,
-      "cwd": "/full/path/to/CFWx/src",
-      "program": "/full/path/to/CFWx/bin/cfwx",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
+      "name": "CFWx: Debug CMake-selected target", "type": "cppdbg", "request": "launch",
+      "program": "${command:cmake.launchTargetPath}", "cwd": "${workspaceFolder}",
+      "args": [], "stopAtEntry": false, "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb",
+      "setupCommands": [{"text": "-enable-pretty-printing", "ignoreFailures": true}]
+    },
+    {
+      "name": "CFWx: Debug Application", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx", "cwd": "${workspaceFolder}",
+      "args": [], "preLaunchTask": "CFWx: Build Debug", "stopAtEntry": false,
+      "externalConsole": false, "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug Transformer Examples", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_transformer_examples", "cwd": "${workspaceFolder}",
+      "args": [], "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug Built-in Training", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_train", "cwd": "${workspaceFolder}",
+      "args": [], "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug Dataset Train", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "cwd": "${workspaceFolder}",
+      "args": ["train", "${input:dataset}", "--checkpoint-name", "${input:checkpointName}", "${input:steps}", "cpu"],
+      "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug Dataset Resume", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "cwd": "${workspaceFolder}",
+      "args": ["resume", "${input:dataset}", "--checkpoint-name", "${input:checkpointName}", "${input:steps}", "cpu"],
+      "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug Cached Generation", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "cwd": "${workspaceFolder}",
+      "args": ["generate", "${input:checkpointPath}", "${input:prompt}", "40", "sliding", "64"],
+      "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
+    },
+    {
+      "name": "CFWx: Debug CPU Test Runner", "type": "cppdbg", "request": "launch",
+      "program": "${workspaceFolder}/build/cpu-debug/Debug/${input:testRunner}", "cwd": "${workspaceFolder}",
+      "args": [], "preLaunchTask": "CFWx: Build Debug", "externalConsole": false,
+      "MIMode": "gdb", "miDebuggerPath": "gdb"
     }
+  ],
+  "inputs": [
+    {"id": "dataset", "type": "promptString", "description": "Dataset path", "default": "data/tiny.txt"},
+    {"id": "checkpointName", "type": "promptString", "description": "Checkpoint name without extension", "default": "sample"},
+    {"id": "checkpointPath", "type": "promptString", "description": "Checkpoint path", "default": "sample.ckpt"},
+    {"id": "steps", "type": "promptString", "description": "Additional training updates", "default": "300"},
+    {"id": "prompt", "type": "promptString", "description": "Generation prompt", "default": "the cat "},
+    {"id": "testRunner", "type": "pickString", "description": "CPU test target", "options": ["cfwx_numerical_test_runner", "cfwx_logger_test_runner", "cfwx_transformer_test_runner", "cfwx_training_test_runner", "cfwx_training_extra_test_runner", "cfwx_runtime_test_runner", "cfwx_cache_options", "cfwx_test_runner"], "default": "cfwx_runtime_test_runner"}
   ]
 }

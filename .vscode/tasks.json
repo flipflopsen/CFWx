@@ -1,20 +1,40 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "CFWx-Task: Build",
-            "type": "shell",
-            "command": "cd build && cmake .. && cmake --build .",
-            "options": {
-                "cwd": "/full/path/to/CFWx"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "CFWx: Configure Debug", "type": "process", "command": "cmake", "args": ["--preset", "cpu-debug"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Build Debug", "type": "process", "command": "cmake", "args": ["--build", "--preset", "cpu-debug", "--parallel"], "dependsOn": "CFWx: Configure Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": ["$gcc"], "group": {"kind": "build", "isDefault": true}},
+    {"label": "CFWx: Configure Release", "type": "process", "command": "cmake", "args": ["--preset", "cpu-release"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Build Release", "type": "process", "command": "cmake", "args": ["--build", "--preset", "cpu-release", "--parallel"], "dependsOn": "CFWx: Configure Release", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": ["$gcc"]},
+    {"label": "CFWx: Configure ASan", "type": "process", "command": "cmake", "args": ["--preset", "cpu-asan"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Build ASan", "type": "process", "command": "cmake", "args": ["--build", "--preset", "cpu-asan", "--parallel"], "dependsOn": "CFWx: Configure ASan", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": ["$gcc"]},
+    {"label": "CFWx: Test Debug", "type": "process", "command": "ctest", "args": ["--preset", "cpu-debug"], "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": [], "group": {"kind": "test", "isDefault": true}},
+    {"label": "CFWx: Test Release", "type": "process", "command": "ctest", "args": ["--preset", "cpu-release"], "dependsOn": "CFWx: Build Release", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Test ASan", "type": "process", "command": "ctest", "args": ["--preset", "cpu-asan"], "dependsOn": "CFWx: Build ASan", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Run Application", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx", "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Run Transformer Examples", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_transformer_examples", "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Run Built-in Training", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_train", "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Train Dataset", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "args": ["train", "${input:dataset}", "--checkpoint-name", "${input:checkpointName}", "${input:steps}", "cpu"], "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Resume Dataset", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "args": ["resume", "${input:dataset}", "--checkpoint-name", "${input:checkpointName}", "${input:steps}", "cpu"], "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Generate", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/cfwx_run", "args": ["generate", "${input:checkpointPath}", "${input:prompt}", "${input:tokens}", "${input:cacheMode}", "${input:cacheWindow}"], "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Run CPU Test Runner", "type": "process", "command": "${workspaceFolder}/build/cpu-debug/Debug/${input:testRunner}", "dependsOn": "CFWx: Build Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Clean Debug", "type": "process", "command": "cmake", "args": ["--build", "--preset", "cpu-debug", "--target", "clean"], "dependsOn": "CFWx: Configure Debug", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Documentation", "type": "process", "command": "doxygen", "args": ["doxygen_docs/Doxyfile"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Documentation Checks", "type": "process", "command": "python3", "args": ["scripts/check_doxygen.py"], "dependsOn": ["CFWx: Documentation", "CFWx: Markdown Checks"], "dependsOrder": "sequence", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Markdown Checks", "type": "process", "command": "python3", "args": ["scripts/check_docs_layout.py"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Configure CUDA (MANUAL)", "type": "process", "command": "cmake", "args": ["--preset", "cuda-release"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: Build CUDA (MANUAL)", "type": "process", "command": "cmake", "args": ["--build", "--preset", "cuda-release", "--parallel"], "dependsOn": "CFWx: Configure CUDA (MANUAL)", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": ["$gcc"]},
+    {"label": "CFWx: CUDA Gradient Test (MANUAL)", "type": "process", "command": "${workspaceFolder}/build/cuda-release/Release/cfwx_cuda_manual", "args": ["--test"], "dependsOn": "CFWx: Build CUDA (MANUAL)", "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "CFWx: CUDA Fused Train (MANUAL)", "type": "process", "command": "${workspaceFolder}/build/cuda-release/Release/cfwx_cuda_manual", "args": ["${input:dataset}", "${input:steps}"], "dependsOn": "CFWx: Build CUDA (MANUAL)", "options": {"cwd": "${workspaceFolder}", "env": {"CFWX_CUDA_FUSED_BATCH": "1"}}, "problemMatcher": []}
+  ],
+  "inputs": [
+    {"id": "dataset", "type": "promptString", "description": "Dataset path, relative to workspace or absolute", "default": "data/tiny.txt"},
+    {"id": "checkpointName", "type": "promptString", "description": "Checkpoint identifier (no extension/path)", "default": "sample"},
+    {"id": "checkpointPath", "type": "promptString", "description": "Checkpoint path", "default": "sample.ckpt"},
+    {"id": "steps", "type": "promptString", "description": "Additional optimizer updates", "default": "300"},
+    {"id": "prompt", "type": "promptString", "description": "Generation prompt", "default": "the cat "},
+    {"id": "tokens", "type": "promptString", "description": "Tokens to generate", "default": "40"},
+    {"id": "cacheMode", "type": "pickString", "description": "Cache policy", "options": ["sliding", "fixed"], "default": "sliding"},
+    {"id": "cacheWindow", "type": "promptString", "description": "Cache capacity (fixed must fit prompt + output)", "default": "64"},
+    {"id": "testRunner", "type": "pickString", "description": "CPU test executable (cmocka requires installed dependency)", "options": ["cfwx_numerical_test_runner", "cfwx_logger_test_runner", "cfwx_transformer_test_runner", "cfwx_training_test_runner", "cfwx_training_extra_test_runner", "cfwx_runtime_test_runner", "cfwx_cache_options", "cfwx_test_runner"], "default": "cfwx_runtime_test_runner"}
+  ]
 }

@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "name": "Linux-Debug", "generator": "Ninja", "configurationType": "Debug",
+      "buildRoot": "${projectDir}/build/vs-linux-debug", "installRoot": "${projectDir}/build/install/vs-linux-debug",
+      "cmakeCommandArgs": "", "buildCommandArgs": "", "ctestCommandArgs": "--output-on-failure",
+      "variables": [
+        {"name": "CFWX_USE_VCPKG", "value": "OFF", "type": "BOOL"},
+        {"name": "CFWX_CUDA", "value": "OFF", "type": "BOOL"},
+        {"name": "CFWX_SANITIZERS", "value": "OFF", "type": "BOOL"},
+        {"name": "BUILD_TESTING", "value": "ON", "type": "BOOL"},
+        {"name": "CMAKE_EXPORT_COMPILE_COMMANDS", "value": "ON", "type": "BOOL"}
+      ]
+    },
+    {
+      "name": "Linux-Release", "generator": "Ninja", "configurationType": "Release",
+      "buildRoot": "${projectDir}/build/vs-linux-release", "installRoot": "${projectDir}/build/install/vs-linux-release",
+      "cmakeCommandArgs": "", "buildCommandArgs": "", "ctestCommandArgs": "--output-on-failure",
+      "variables": [
+        {"name": "CFWX_USE_VCPKG", "value": "OFF", "type": "BOOL"},
+        {"name": "CFWX_CUDA", "value": "OFF", "type": "BOOL"},
+        {"name": "CFWX_SANITIZERS", "value": "OFF", "type": "BOOL"},
+        {"name": "BUILD_TESTING", "value": "ON", "type": "BOOL"}
+      ]
+    }
+  ]
+}
