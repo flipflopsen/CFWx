@@ -1,0 +1,49 @@
+/**
+ * @mainpage CFWx — complete repository reference
+ *
+ * @section intro Purpose and maturity
+ * CFWx is a C17 educational numerical/Transformer playground with an analytic
+ * CPU training path and an opt-in CUDA reference backend. This manual covers
+ * public API contracts, implementation helpers, model owners, tests, experiment
+ * drivers, maintenance tooling and design proposals. It is not a production
+ * performance, portability or security certification.
+ *
+ * @section navigation Reading paths
+ * - @ref getting_started: local documentation/build commands and navigation.
+ * - @ref architecture_guide: repository map and dependency boundaries.
+ * - @ref numerical_contracts: ownership, layout, reductions and numerical failures.
+ * - @ref training_guide: analytic reverse mode and actual dataset training.
+ * - @ref runtime_guide: dropout, batching, checkpoints and fixed/sliding caches.
+ * - @ref gpu_guide: unvalidated CUDA implementation and optimization proposals.
+ * - @ref testing_guide: correctness tests versus performance claims.
+ * - @ref tooling_guide: CMake, Python maintenance, CI, editor and repository metadata.
+ * - @ref documentation_guide: how this HTML manual is configured and maintained.
+ *
+ * @section api API hierarchy
+ * Browse @ref cfwx for the complete module tree. Start with @ref core and
+ * @ref containers, then @ref maths, @ref models, @ref training and @ref runtime.
+ * @ref experiments describes application orchestration; @ref logging describes
+ * borrowed logger contexts. @ref gpu is intentionally separate from CPU storage.
+ * Files provide inline source, include relations, referenced-by links and optional
+ * call graphs. Data Structures list fields and ownership; Modules group symbols
+ * by scientific/engineering responsibility rather than source filename alone.
+ *
+ * @section safety Important constraints
+ * Owners begin as zero; no shallow copies. Positive dimensions and caller-owned
+ * preallocated outputs are the normal API contract. Failure may partially modify
+ * numerical outputs; do not update a model after failed backward. Logging does
+ * not make global backend state thread-safe. FNV checksum/fingerprint detects
+ * corruption/reproducibility differences, not adversarial tampering. CUDA source
+ * documentation is not CUDA execution or validation.
+ *
+ * @section generation Generate locally
+ * @code{.sh}
+ * doxygen Doxyfile
+ * # Open build-docs/html/index.html in a browser.
+ * # Optional CMake integration, no numerical executable is run:
+ * cmake -S . -B build -DCFWX_USE_VCPKG=OFF -DCFWX_CUDA=OFF
+ * cmake --build build --target docs
+ * @endcode
+ * Install Doxygen and optionally Graphviz locally. Doxygen parses CUDA as C++
+ * source; it never invokes nvcc. Graphviz renders diagrams only.
+ */

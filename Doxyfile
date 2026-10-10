@@ -1,0 +1,123 @@
+# Run `doxygen Doxyfile` from the repository root. CUDA is parsed as source only.
+DOXYFILE_ENCODING       = UTF-8
+PROJECT_NAME           = "CFWx"
+PROJECT_NUMBER         = "development"
+PROJECT_BRIEF          = "C17 numerical, Transformer, training and optional CUDA reference library"
+OUTPUT_DIRECTORY       = build-docs
+CREATE_SUBDIRS          = NO
+ALLOW_UNICODE_NAMES     = NO
+OUTPUT_LANGUAGE        = English
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = .
+STRIP_FROM_INC_PATH    = include
+TAB_SIZE               = 4
+OPTIMIZE_OUTPUT_FOR_C  = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = YES
+CPP_CLI_SUPPORT        = NO
+
+# Public APIs, internal implementation, tests, maintenance scripts and guides.
+INPUT                  = include src test scripts cmake docs README.md ARCHITECTURE.md TRAINING.md RUNTIME.md CUDA.md TRANSFORMER_BLOCKS.md CODE_STYLEGUIDE.md CMakeLists.txt .github/workflows .vscode .gitattributes .gitignore
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.c *.cu *.py *.md *.dox *.cmake *.txt *.yml *.yaml *.json .gitattributes .gitignore
+EXTENSION_MAPPING      = cu=C++ cmake=C++ yml=C++ yaml=C++ json=C++ txt=C++
+EXCLUDE_PATTERNS       = */build/* */build-*/* */bin/* */log/* */.git/* */.cache/*
+EXCLUDE_SYMLINKS       = YES
+EXAMPLE_PATH           = test src/experiments
+EXAMPLE_PATTERNS       = *.c
+EXAMPLE_RECURSIVE      = YES
+IMAGE_PATH             = docs
+USE_MDFILE_AS_MAINPAGE =
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_PRIV_VIRTUAL   = YES
+EXTRACT_PACKAGE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+EXTRACT_ANON_NSPACES   = YES
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+HIDE_IN_BODY_DOCS      = NO
+INTERNAL_DOCS          = YES
+CASE_SENSE_NAMES       = YES
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = YES
+SORT_BY_SCOPE_NAME     = YES
+SORT_GROUP_NAMES       = YES
+DISTRIBUTE_GROUP_DOC   = YES
+SUBGROUPING            = YES
+INLINE_INHERITED_MEMB  = YES
+INLINE_SIMPLE_STRUCTS = NO
+TYPEDEF_HIDES_STRUCT   = NO
+SHOW_INCLUDE_FILES     = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+SHOW_USED_FILES        = YES
+SHOW_GROUPED_MEMB_INC  = YES
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = YES
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+REFERENCES_LINK_SOURCE = YES
+SOURCE_TOOLTIPS        = YES
+VERBATIM_HEADERS       = YES
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_COLORSTYLE        = LIGHT
+HTML_DYNAMIC_MENUS     = YES
+HTML_INDEX_NUM_ENTRIES = 200
+GENERATE_TREEVIEW       = YES
+FULL_SIDEBAR            = YES
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+HTML_TIMESTAMP         = NO
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = YES
+
+# No compiler/toolkit is invoked by these parser settings.
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF      = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = include
+PREDEFINED             = __global__= __device__= __host__= __shared__= __forceinline__= __CUDACC__
+SKIP_FUNCTION_MACROS   = YES
+
+# Graphviz is optional. Disable HAVE_DOT if it is not installed locally.
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 2
+CLASS_DIAGRAMS         = YES
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+DOT_GRAPH_MAX_NODES     = 60
+MAX_DOT_GRAPH_DEPTH     = 3
+DOT_CLEANUP            = YES
+
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = NO
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LOGFILE           = build-docs/doxygen-warnings.log

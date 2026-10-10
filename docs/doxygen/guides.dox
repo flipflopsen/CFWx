@@ -1,0 +1,175 @@
+/**
+ * @page getting_started Getting started and navigation
+ * @tableofcontents
+ * @section gs_docs Generate the manual
+ * Run `doxygen Doxyfile` in the repository root. HTML is under
+ * `build-docs/html/index.html`; XML is under `build-docs/xml` for coverage tools.
+ * Warnings are captured in `build-docs/doxygen-warnings.log`. Graphviz is optional;
+ * set HAVE_DOT=NO in a local copy of Doxyfile if absent. CMake's `docs` target
+ * invokes the same root configuration without building/running the numerical core.
+ * @section gs_cpu CPU execution
+ * Configure with `CFWX_USE_VCPKG=OFF` where the original vcpkg path is unavailable.
+ * Read TRAINING.md and RUNTIME.md before running dataset experiments. The original
+ * application remains Linux/POSIX-oriented and retains known legacy CLI behavior.
+ * @section gs_browse Browse
+ * Modules -> responsibilities; Data Structures -> owners/state; Files -> source
+ * and include relations; Pages -> tutorials/design. Search finds a named function,
+ * type, field or guide. Public functions link declarations and definitions; static
+ * helpers are extracted to explain reverse-mode and persistence implementation.
+ */
+
+/**
+ * @page architecture_guide Repository architecture and dependency graph
+ * @tableofcontents
+ * @section arch_layers Layer separation
+ * `cfwx_core`: containers, numerical primitives, model composition, analytic tape,
+ * batching, optimizer and checkpoint/decode lifecycle. `cfwx_logger`: shared backend
+ * plus named borrowed contexts. Drivers and experiments link both; numerical
+ * kernels do not log or terminate the process. CUDA owns a separate device ABI
+ * and storage layout; CPU checkpoint registries cannot be copied positionally.
+ * @section arch_map Full repository map
+ * @include{doc} ARCHITECTURE.md
+ */
+
+/**
+ * @page numerical_contracts Numerical and ownership contracts
+ * @tableofcontents
+ * @section nc_layout Layout
+ * Sequence matrices are [tokens,features]; dense weights [input,output]; embeddings
+ * [vocabulary,width]. Heads use width/heads depth and sqrt(head_depth) scaling.
+ * Masks mean true=allowed. Causal masks require key<=query. Completely masked rows
+ * fail, rather than return NaN or a fabricated distribution.
+ * @section nc_owners Owners and output storage
+ * Constructors require empty zero-initialized owners. Free resets them. Struct
+ * assignment is not a deep clone. Normal outputs are caller-preallocated; only
+ * explicitly documented exact in-place cases are permitted. Partial overlaps are
+ * forbidden. Backward output owners must match model architecture and be disjoint.
+ * @section nc_reduction Reduction and gradients
+ * Dense backward sums contributions without implicit averaging. MSE/BCE reduce
+ * by scalar element count. Token CE reduces over nonignored rows. Mini-batches
+ * weight by valid-token counts. Do not divide mean-reduced gradients a second time.
+ * @section nc_failures Failures
+ * cfwx_status distinguishes invalid argument, shape, allocation and nonfinite
+ * numerical errors. Individual functions may partially modify outputs on failure;
+ * never apply invalid gradients. Basic elementwise vector operations can propagate
+ * IEEE-754 NaN/Inf. Scientific data must be validated according to each API.
+ * @section nc_blocks Detailed block composition
+ * @include{doc} TRANSFORMER_BLOCKS.md
+ */
+
+/**
+ * @page training_guide Analytic training and datasets
+ * @tableofcontents
+ * @section tg_tape Reverse-mode execution
+ * Owned tape nodes contain values/adjoints and parent references. Reverse traversal
+ * accumulates fan-out gradients. Attention uses the softmax vector-Jacobian product;
+ * normalization projects out appropriate mean/radial directions. Dropout uses the
+ * actual stored forward mask. Parameter leaves are exported only after numerical
+ * validation. Recompute uses current inputs/parameters; mutation between matching
+ * forward/backward is invalid. AdamW holds moments and one global update step.
+ * @section tg_dataset Dataset tutorial
+ * @include{doc} TRAINING.md
+ */
+
+/**
+ * @page runtime_guide Batching, persistence and decoding
+ * @tableofcontents
+ * @section rt_usage Runtime usage
+ * @include{doc} RUNTIME.md
+ * @section rt_sliding Configurable sliding cache
+ * CPU cache uses fixed or sliding mode. Absolute positions do not reset on eviction.
+ * Sliding cache is not identical to recomputing a truncated raw-token context with
+ * positions reset. Cached representations can retain information from earlier
+ * context. Failed full-cache append restores committed entries.
+ * @section rt_durable Stable durable checkpoint names
+ * @include{doc} docs/gpu-runtime/durability.md
+ */
+
+/**
+ * @page gpu_guide CUDA implementation and optimization roadmap
+ * @tableofcontents
+ * @section gg_policy Manual validation only
+ * CUDA targets are opt-in; neither documentation generation nor CPU tests invoke
+ * CUDA compilation/probing/execution. Source has not been GPU-validated by the
+ * assistant. Sequence launch fusion is not cuBLAS/Tensor Core/FlashAttention.
+ * @section gg_manual Manual commands and limits
+ * @include{doc} CUDA.md
+ * @section gg_index Design-document index
+ * @include{doc} docs/gpu-runtime/overview.md
+ */
+
+/**
+ * @page testing_guide Tests, examples and correctness evidence
+ * @tableofcontents
+ * @section test_map CPU test families
+ * Numerical regression: reference products, overflow/bounds and activation/loss
+ * finite differences. Transformer: causal zeros, projected heads, residual identity.
+ * Analytic training: all tiny-LM parameters, attention inputs/bias, norm parameters,
+ * gated FFN and block inputs. Runtime: dropout replay, token weighting, cache/full
+ * prefix parity, checkpoint corruption and exact same-backend continuation. Cache
+ * options: sliding wraps/positions, failure rollback and reset.
+ * @section test_runners Drivers
+ * `cfwx_train` is the original toy overfit driver. `cfwx_run` provides CPU dataset
+ * resume, complete held-out evaluation and cached generation. `cfwx_cuda_manual`
+ * requires an explicit CUDA build/manual invocation. Experiments borrow a named
+ * logger and release all owned state before returning failure or success.
+ * @section test_quality Interpretation
+ * Small finite differences validate local derivatives, not long-training quality.
+ * Repeated datasets can produce trivial validation despite a partition. Bit equality
+ * applies only to the tested same-platform/kernel reduction policy. Sanitizers do
+ * not establish mathematical correctness. No GPU performance claim is warranted.
+ */
+
+/**
+ * @page tooling_guide Build, maintenance and repository metadata
+ * @tableofcontents
+ * @section tool_cmake CMake
+ * Root CMake retains vcpkg/cmocka discovery, module groups and custom targets.
+ * cmake/cuda_backend.cmake enables CUDA only on explicit opt-in. CMake's docs target
+ * is additive and does not remove start, clear, welp, valgrind or test targets.
+ * cmake/start_project.cmake rejects unsafe copy destinations and excludes artifacts.
+ * @section tool_scripts Scripts
+ * Python maintenance scripts perform textual source/build integration, formatting
+ * and idempotence checks. They are not runtime training dependencies. Documentation
+ * annotations are generated by scripts/document_repository.py and reviewed against
+ * existing contracts. No documentation script invokes CUDA compilation or execution.
+ * @section tool_ci CI
+ * Workflows separate CPU build/sanitizer execution from static CUDA source
+ * maintenance. Doxygen workflow checks parse/generation and API coverage only.
+ * A workflow that changes comments must not silently change C/CUDA semantics.
+ * @section tool_metadata Editor and metadata
+ * `.vscode` paths are machine-specific. `.gitattributes` controls LF normalization.
+ * `.gitignore` excludes generated output/checkpoints. The license governs reuse;
+ * guides and API comments are not a replacement for license text. Config files and
+ * YAML/JSON are browsed as source; they are not represented as callable C APIs.
+ */
+
+/**
+ * @page documentation_guide Doxygen integration and maintenance
+ * @tableofcontents
+ * @section doc_scope Scope
+ * Doxyfile includes public headers, C/CUDA definitions, static helpers, tests, Python
+ * tools, CMake and repository guides. EXTRACT_ALL/STATIC/PRIVATE keep the reference
+ * comprehensive, but extraction alone is not proof of correct comments. Header
+ * contracts remain the canonical source for public functions; definitions copy them.
+ * @section doc_style Comment convention
+ * Use @file, @brief, @details, @ingroup, @param, @return, @pre, @post, @warning,
+ * @note and @see where appropriate. Preserve exact shapes and output mutation
+ * guarantees. Do not invent promises of thread safety, rollback, GPU validation,
+ * parameter direction or numerical precision from symbol names alone. Existing
+ * explanatory ordinary comments remain visible in source browsing.
+ * @section doc_update Adding an API
+ * Add its canonical header contract, annotate every named parameter, add it to the
+ * relevant module and link its implementation. Run Doxygen and inspect warning
+ * log plus HTML. XML coverage checks named public APIs; internal implementations
+ * also appear with file/source references. Fix genuine mismatches, not warnings
+ * by merely hiding symbols. Check root guides for stale capability statements.
+ * @section doc_commands Commands
+ * @code{.sh}
+ * python scripts/document_repository.py
+ * doxygen Doxyfile
+ * python scripts/check_doxygen.py
+ * @endcode
+ * These commands are source/document operations only. Generated HTML/XML are
+ * ignored by Git. Pin Doxygen version for reproducible publishing if required.
+ */

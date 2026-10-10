@@ -1,0 +1,99 @@
+/**
+ * @defgroup cfwx CFWx repository
+ * @brief Educational numerical computation, model composition and execution lifecycle.
+ * @details The CPU core uses owning row-major double arrays and explicit status
+ * propagation. Experimental runners own datasets/model lifetimes and borrow named
+ * logger contexts. CUDA is a distinct opt-in implementation; documentation
+ * generation never configures or executes it.
+ *
+ * @defgroup core Core contracts
+ * @ingroup cfwx
+ * @brief Shared status codes, overflow checks and ownership rules.
+ *
+ * @defgroup containers Owning data structures
+ * @ingroup core
+ * @brief Vectors, matrices, tensors and affine neurons.
+ * @details Initialize owners with zero, allocate through constructors, and release
+ * through matching free functions. Shallow copies of live owners are invalid.
+ *
+ * @defgroup maths Mathematical primitives
+ * @ingroup cfwx
+ * @brief Stable activations, derivatives, losses and discounted returns.
+ *
+ * @defgroup activations Activations and derivatives
+ * @ingroup maths
+ * @brief ReLU, sigmoid, exact GELU, SiLU dispatch, tanh and softmax.
+ *
+ * @defgroup losses Losses and reductions
+ * @ingroup maths
+ * @brief Scalar and token-wise objectives with explicit mean-reduction gradients.
+ *
+ * @defgroup rewards Return computation
+ * @ingroup maths
+ * @brief Backward discounted-return recurrence with terminal bootstrap zero.
+ *
+ * @defgroup models Models and composition
+ * @ingroup cfwx
+ * @brief Dense projections, attention and Transformer building blocks.
+ *
+ * @defgroup dense Dense layers and SGD
+ * @ingroup models
+ * @brief Affine forward/backward operations and deterministic Xavier initialization.
+ *
+ * @defgroup attention Attention and normalization
+ * @ingroup models
+ * @brief Scaled dot products, causal/padding masks, LayerNorm and RMSNorm.
+ *
+ * @defgroup transformer Transformer building blocks
+ * @ingroup models
+ * @brief Embeddings, positions, residuals, dropout, FFNs and pre-normalized blocks.
+ *
+ * @defgroup training Analytic training
+ * @ingroup models
+ * @brief Local reverse-mode tape, gradient registries, clipping, AdamW and causal LM.
+ * @details Recompute uses current parameters; do not mutate inputs or parameters
+ * between the forward and corresponding backward computation. Fan-out sums all
+ * parent adjoints, including Q/K/V and residual branches.
+ *
+ * @defgroup runtime Runtime lifecycle
+ * @ingroup cfwx
+ * @brief Token-weighted batching, full evaluation and incremental decoding.
+ *
+ * @defgroup checkpoint Checkpoint persistence
+ * @ingroup runtime
+ * @brief Versioned CPU parameter/optimizer/vocabulary/RNG persistence.
+ * @details Publication uses a unique temporary, file fsync, rename and directory
+ * fsync. Failure after rename can leave new contents visible without a durability
+ * guarantee. This format is not interoperable with CUDA parameter storage.
+ *
+ * @defgroup gpu Optional CUDA backend
+ * @ingroup cfwx
+ * @brief Device reference execution and opt-in sequence-parallel launch fusion.
+ * @warning GPU implementation has not been compiled or executed by the assistant.
+ * No Tensor Core, cuBLAS or FlashAttention performance claim follows from source
+ * presence. Manual validation instructions and design proposals are separate pages.
+ *
+ * @defgroup utilities Application utilities
+ * @ingroup cfwx
+ * @brief Legacy argument parsing, messages, ANSI colors and named logger injection.
+ *
+ * @defgroup logging Logging and injection
+ * @ingroup utilities
+ * @brief Borrowed experiment identity, independent levels and optional sinks.
+ * @details The legacy backend uses shared FILE/localtime state and is not thread-safe.
+ * Sinks must copy any message data they retain beyond a callback.
+ *
+ * @defgroup experiments Experimental runners
+ * @ingroup cfwx
+ * @brief Dataset/model orchestration with explicit cleanup and injected logging.
+ *
+ * @defgroup tests Tests and executable examples
+ * @ingroup cfwx
+ * @brief Reference, finite-difference, lifecycle, corruption and manual CUDA checks.
+ * @details CPU checks run under Debug/Release and sanitizer builds. CUDA checks
+ * are manually requested; generating their source pages does not execute them.
+ *
+ * @defgroup maintenance Build and maintenance tooling
+ * @ingroup cfwx
+ * @brief CMake integration, idempotent source scripts, editor files and CI workflows.
+ */
