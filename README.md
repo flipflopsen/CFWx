@@ -2,21 +2,34 @@
 Educational C17 numerical foundations for ML/DL experiments. Not a production ML framework.
 
 ## Build and test (Linux)
-Requires C17 compiler and CMake >= 3.16. No mandatory vcpkg or cmocka dependency.
+The original vcpkg integration remains enabled by default, using `/opt/vcpkg/scripts/buildsystems/vcpkg.cmake`. An explicitly supplied `CMAKE_TOOLCHAIN_FILE` takes precedence. GNU C17 extensions, the original directory/module layout, compiler flags and Debug/Release output directories are retained.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
-./build/cfwx
+./build/Debug/cfwx
+# For environments without vcpkg: use system packages instead
+cmake -S . -B build-system -DCFWX_USE_VCPKG=OFF
+cmake --build build-system --parallel
+ctest --test-dir build-system --output-on-failure
+# Optional sanitizer build
 cmake -S . -B build-asan -DCFWX_SANITIZERS=ON
 cmake --build build-asan --parallel
 ctest --test-dir build-asan --output-on-failure
-# Optional when Valgrind is installed
-cmake --build build --target valgrind
 ```
 
-Select vcpkg externally using `-DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake` on first configure. CLI uses POSIX getopt; core has no OS-specific calls. VSCode settings remain user-specific.
+Cmocka is discovered through its CMake configuration (vcpkg by default), with a system pkg-config fallback. When available, `cfwx_test_runner` executes the cmocka tests registered as `unit_tests`. The separate `cfwx_numerical_test_runner` retains the full numerical regression suite registered as `numerical_foundations`; it can run without cmocka. Missing cmocka generates an explicit warning. `BUILD_TESTING=OFF` disables both test executables.
+
+Main retains the original argument parsing, debugger detection, logger initialization and cleanup. It delegates the experiment to `numerical_runner()` in `src/experiments/numerical_runner.c`, which checks softmax reference values and normalization and returns a process-compatible success/failure code. Runner failures are logged and propagated after cleanup. The original `args.c` has been restored verbatim; its pre-existing unterminated long-option table and potential filename-termination defect remain and should be addressed separately. Debugger detection also retains its original `PTRACE_TRACEME` side effects.
+
+`PROJECT_PATH` is configurable and defaults to the checkout directory rather than the original placeholder, so logger initialization works without source edits. CLI uses POSIX getopt and Linux ptrace; the numerical core has no OS-specific calls. VSCode settings remain user-specific.
+
+## Custom targets
+- `welp`: prints target help.
+- `start`: copies the template to `PROJECT_PATH`. Set this to an external destination; self-copy and descendant destinations are rejected. Generated build trees, `.git`, binaries and logs are excluded.
+- `valgrind`: available when installed; runs the actual application target, writes `log/valgrind.log`, and reports memory-check failures through its exit status.
+- `clear`: clears `bin` and `log`, recreating project directories. It deliberately does not delete the active build tree or `lib` contents. Use the generated `clean` target for build outputs, or remove the build directory from an external shell for a complete reset.
 
 ## Foundations
 - Contiguous row-major vectors, matrices, tensors (rank 1-8); overflow-checked allocation, bounds-checked indexing, metadata-only reshape.
@@ -40,6 +53,6 @@ Dense: W `[inputs,outputs]`, X `[batch,inputs]`, Y `[batch,outputs]`. Backward o
 Attention: Q `[queries,d]`, K `[keys,d]`, V `[keys,value_dim]`. Causal mode requires equal query/key lengths and masks key index above query index. Layer norm divides variance by feature count, not feature count minus one.
 
 ## Tests and limits
-CTest runner uses checks active under NDEBUG. Tests cover container operations, overflow/bounds, reference matrix products, stable logits, activation and categorical-loss finite differences, all dense weight/bias/input finite differences, SGD, causal attention and constant-row normalization.
+Numerical tests remain active under NDEBUG. Tests cover container operations, overflow/bounds, reference matrix products, stable logits, activation and categorical-loss finite differences, all dense weight/bias/input finite differences, SGD, causal attention and constant-row normalization. Cmocka additionally exercises the experiment runner and extreme-logit normalization.
 
 Not implemented: broadcasting/views, autodiff graph, normalization/attention backward, multi-head projections, full Transformer blocks, dropout, Adam, serialization, GPU or parallel training. Existing logger is global and not thread-safe; initialization RNG is noncryptographic. Separate mutable objects per thread.
