@@ -2,7 +2,7 @@ name: Apply documented C code style
 on:
   push:
     branches: [feature/implement_basics]
-    paths: [scripts/apply_code_style.py, scripts/integrate_transformer.py, scripts/integrate_training.py, scripts/harden_training.py, .clang-format, .github/workflows/apply-code-style.yml]
+    paths: [scripts/apply_code_style.py, scripts/integrate_transformer.py, scripts/integrate_training.py, scripts/harden_training.py, scripts/integrate_runtime.py, scripts/harden_runtime.py, .clang-format, .github/workflows/apply-code-style.yml]
 permissions:
   contents: write
 jobs:
@@ -17,14 +17,18 @@ jobs:
           python -m pip install clang-format==22.1.0
           sudo apt-get update
           sudo apt-get install -y libcmocka-dev
-      - name: Integrate tests and format
+      - name: Integrate and format
         run: |
           python scripts/integrate_transformer.py
           python scripts/integrate_training.py
+          python scripts/integrate_runtime.py
+          python scripts/harden_runtime.py
           python scripts/apply_code_style.py
           git diff > /tmp/first.diff
           python scripts/integrate_transformer.py
           python scripts/integrate_training.py
+          python scripts/integrate_runtime.py
+          python scripts/harden_runtime.py
           python scripts/apply_code_style.py
           git diff > /tmp/second.diff
           cmp /tmp/first.diff /tmp/second.diff
@@ -38,12 +42,12 @@ jobs:
           cmake -S . -B build-asan -DCFWX_USE_VCPKG=OFF -DCFWX_SANITIZERS=ON
           cmake --build build-asan --parallel 2
           ASAN_OPTIONS=detect_leaks=1 ctest --test-dir build-asan --output-on-failure
-      - name: Commit formatting and build integration
+      - name: Commit validated integration and formatting
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add include src test CMakeLists.txt README.md TRANSFORMER_BLOCKS.md
+          git add include src test CMakeLists.txt README.md TRAINING.md ARCHITECTURE.md TRANSFORMER_BLOCKS.md
           if ! git diff --cached --quiet; then
-            git commit -m 'Format analytic training modules and integrate end-to-end regressions'
+            git commit -m 'Integrate tested dropout batching checkpoint and KV runtime'
             git push origin HEAD:feature/implement_basics
           fi
