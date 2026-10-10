@@ -1,0 +1,23 @@
+#include "maths/loss_functions.h"
+#include "maths/activation_functions.h"
+cfwx_status cfwx_mse(const double *p,const double *t,size_t n,double *loss,double *g){
+    if(!p || !t || !n || !loss) return CFWX_INVALID;
+    double s=0; for(size_t i=0;i<n;i++){if(!isfinite(p[i]) || !isfinite(t[i])) return CFWX_NUMERIC; double d=p[i]-t[i]; s+=d*d/(double)n; if(g) g[i]=2*d/(double)n;}
+    if(!isfinite(s)) return CFWX_NUMERIC;
+    *loss=s; return CFWX_OK;
+}
+cfwx_status cfwx_cross_entropy_logits(const double *x,size_t n,size_t label,double *loss,double *g){
+    if(!x || !n || label>=n || !loss) return CFWX_INVALID;
+    double max=x[0]; for(size_t i=0;i<n;i++){if(!isfinite(x[i])) return CFWX_NUMERIC; if(x[i]>max) max=x[i];}
+    double sum=0; for(size_t i=0;i<n;i++) sum+=exp(x[i]-max);
+    double value=(max-x[label])+log(sum); if(!isfinite(value)) return CFWX_NUMERIC;
+    if(g){cfwx_status s=cfwx_softmax(x,n,g); if(s) return s; g[label]-=1;}
+    *loss=value; return CFWX_OK;
+}
+cfwx_status cfwx_bce_logits(const double *x,const double *t,size_t n,double *loss,double *g){
+    if(!x || !t || !n || !loss) return CFWX_INVALID;
+    for(size_t i=0;i<n;i++) if(!isfinite(x[i]) || !isfinite(t[i]) || t[i]<0 || t[i]>1) return CFWX_INVALID;
+    double sum=0; for(size_t i=0;i<n;i++){sum+=((x[i]>=0?x[i]*(1-t[i]):-x[i]*t[i])+log1p(exp(-fabs(x[i]))))/(double)n; if(g) g[i]=(cfwx_sigmoid(x[i])-t[i])/(double)n;}
+    if(!isfinite(sum)) return CFWX_NUMERIC;
+    *loss=sum; return CFWX_OK;
+}
