@@ -1,0 +1,33 @@
+name: Static CUDA source integration (NO GPU execution)
+on:
+  push:
+    branches: [feature/implement_basics]
+    paths: [scripts/integrate_cuda.py, .github/workflows/cuda-source-maintenance.yml]
+permissions:
+  contents: write
+jobs:
+  source_only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/implement_basics
+      - name: Install source formatter only
+        run: python -m pip install clang-format==22.1.0
+      - name: Apply static source changes only
+        run: |
+          python scripts/integrate_cuda.py
+          git diff > /tmp/first.diff
+          python scripts/integrate_cuda.py
+          git diff > /tmp/second.diff
+          cmp /tmp/first.diff /tmp/second.diff
+      # Deliberately NO cmake, nvcc, toolkit discovery, GPU probes or tests.
+      - name: Commit source integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CMakeLists.txt src/gpu include/gpu test/cuda_manual.c
+          if ! git diff --cached --quiet; then
+            git commit -m 'Apply opt-in CUDA source integration and explicit saved dropout masks'
+            git push origin HEAD:feature/implement_basics
+          fi
