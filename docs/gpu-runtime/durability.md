@@ -1,0 +1,7 @@
+# Stable checkpoint naming and durable publication
+
+Names and durability are separate concerns: a flag determines the final path; fsync makes writes persistent. New driver form: `cfwx_run train DATA --checkpoint-name NAME STEPS cpu` resolves NAME to `./NAME.ckpt`. NAME accepts ASCII letters/digits/underscore/hyphen and is bounded. Resume resolves the same name. Existing explicit-path syntax remains compatible. No step-dependent suffix is added; one stable checkpoint is replaced per completed run.
+
+POSIX publication: create unique same-directory temporary file with mkstemp -> write complete versioned payload/checksum -> fflush -> fsync(file descriptor) -> fclose -> rename to final path -> fsync(parent directory). Never rename partial content. Temp resides on the same filesystem. Error before rename removes temp and preserves the old checkpoint. Error after rename means new content may be visible but directory durability is uncertain: return failure and do not claim old checkpoint unchanged. There is no rollback after successful rename.
+
+This does not coordinate concurrent writers; unique temp prevents temp collisions but last rename wins. Require single writer or add an advisory lock. NFS/remote/container/Windows filesystem semantics differ; reject unsupported platform durability instead of promising POSIX guarantees. Test short writes, disk full, interrupted save, permission errors, checksum corruption, directory sync failure, and recovery. fsync is not checkpoint naming logic and does not authenticate payloads.
