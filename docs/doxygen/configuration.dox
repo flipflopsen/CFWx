@@ -1,0 +1,27 @@
+/**
+ * @page configuration_reference Build configuration and repository integration source
+ * @tableofcontents
+ * @section config_root Root CMake build
+ * The build retains original vcpkg/cmocka discovery, numerical targets and
+ * independent optional CUDA/documentation integration. This verbatim source
+ * reference is not interpreted as C++ declarations.
+ * @include CMakeLists.txt
+ * @section config_cuda Optional CUDA build
+ * CUDA language/toolkit configuration occurs only when CFWX_CUDA is enabled.
+ * Generating this page merely includes file text.
+ * @include cmake/cuda_backend.cmake
+ * @section config_docs Documentation target
+ * @include cmake/doxygen.cmake
+ * @section config_copy Safe template copying
+ * @include cmake/start_project.cmake
+ * @section config_workflows Documentation workflow
+ * @include .github/workflows/doxygen.yml
+ * @section config_maintenance Runtime options workflow
+ * @include .github/workflows/runtime-options.yml
+ * @section config_editor Editor tasks
+ * The original editor configuration contains machine-specific paths; adapt them
+ * locally rather than assuming this generated reference describes your system.
+ * @include .vscode/tasks.json
+ * @section config_attributes Repository line-ending rules
+ * @include .gitattributes
+ */
