@@ -2,7 +2,7 @@ name: Apply documented C code style
 on:
   push:
     branches: [feature/implement_basics]
-    paths: [scripts/apply_code_style.py, .clang-format, .github/workflows/apply-code-style.yml]
+    paths: [scripts/apply_code_style.py, scripts/integrate_transformer.py, .clang-format, .github/workflows/apply-code-style.yml]
 permissions:
   contents: write
 jobs:
@@ -17,24 +17,31 @@ jobs:
           python -m pip install clang-format==22.1.0
           sudo apt-get update
           sudo apt-get install -y libcmocka-dev
-      - name: Apply and verify style
+      - name: Integrate tests and apply style
         run: |
+          python scripts/integrate_transformer.py
           python scripts/apply_code_style.py
           git diff > /tmp/first.diff
+          python scripts/integrate_transformer.py
           python scripts/apply_code_style.py
           git diff > /tmp/second.diff
           cmp /tmp/first.diff /tmp/second.diff
-      - name: Build and test
+      - name: Build and test Debug Release and sanitizers
         run: |
-          cmake -S . -B build -DCFWX_USE_VCPKG=OFF
-          cmake --build build --parallel 2
-          ctest --test-dir build --output-on-failure
-      - name: Commit formatting only
+          for mode in Debug Release; do
+            cmake -S . -B build-$mode -DCFWX_USE_VCPKG=OFF -DCMAKE_BUILD_TYPE=$mode
+            cmake --build build-$mode --parallel 2
+            ctest --test-dir build-$mode --output-on-failure
+          done
+          cmake -S . -B build-asan -DCFWX_USE_VCPKG=OFF -DCFWX_SANITIZERS=ON
+          cmake --build build-asan --parallel 2
+          ASAN_OPTIONS=detect_leaks=1 ctest --test-dir build-asan --output-on-failure
+      - name: Commit formatting and build integration
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add include src test CMakeLists.txt README.md
           if ! git diff --cached --quiet; then
-            git commit -m 'Apply Allman formatting and explanatory comments across C sources and headers'
+            git commit -m 'Format Transformer modules and register tested example runners'
             git push origin HEAD:feature/implement_basics
           fi
