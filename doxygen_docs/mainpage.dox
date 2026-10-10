@@ -38,8 +38,8 @@
  *
  * @section generation Generate locally
  * @code{.sh}
- * doxygen Doxyfile
- * # Open build-docs/html/index.html in a browser.
+ * doxygen doxygen_docs/Doxyfile
+ * # Open doxygen_docs/generated/html/index.html in a browser.
  * # Optional CMake integration, no numerical executable is run:
  * cmake -S . -B build -DCFWX_USE_VCPKG=OFF -DCFWX_CUDA=OFF
  * cmake --build build --target docs

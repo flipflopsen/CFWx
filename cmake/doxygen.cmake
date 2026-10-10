@@ -6,12 +6,12 @@
 find_program(CFWX_DOXYGEN_EXECUTABLE doxygen)
 if(CFWX_DOXYGEN_EXECUTABLE)
     add_custom_target(docs
-        COMMAND ${CFWX_DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
+        COMMAND ${CFWX_DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/doxygen_docs/Doxyfile
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Generating complete CFWx HTML/XML reference documentation"
         VERBATIM)
     add_custom_target(docs-clean
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/build-docs
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/doxygen_docs/generated
         COMMENT "Removing generated documentation only"
         VERBATIM)
 else()

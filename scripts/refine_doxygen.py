@@ -20,7 +20,7 @@ s=s.replace("text = re.sub(r'/\\*(?![*!])', '/**', text)", "text = re.sub(r'(?m)
 # Type/member pass previously considered long comment paragraphs to be fields.
 s=s.replace("if in_record and stripped and not stripped.startswith", "if in_record and re.match(r'^(?:const\\s+)?(?:size_t|uint64_t|double|bool|int|unsigned|char|cfwx_\\w+|LogLevel|logger_sink_fn|node|cudaStream_t)\\b', stripped) and not stripped.startswith")
 p.write_text(s)
-p=Path('Doxyfile');s=p.read_text()
+p=Path('doxygen_docs/Doxyfile');s=p.read_text()
 s=s.replace('EXAMPLE_PATH           = test src/experiments','EXAMPLE_PATH           = . test src/experiments docs docs/gpu-runtime')
 s=s.replace('EXAMPLE_PATTERNS       = *.c','EXAMPLE_PATTERNS       = *.c *.md')
 # Config metadata is explained in the tooling page, not parsed as fake C++.
@@ -28,5 +28,5 @@ s=s.replace(' CMakeLists.txt .github/workflows .vscode .gitattributes .gitignore
 s=s.replace(' *.cmake *.txt *.yml *.yaml *.json .gitattributes .gitignore','')
 s=s.replace(' scripts cmake docs',' scripts docs')
 p.write_text(s)
-p=Path('docs/doxygen/guides.dox');s=p.read_text().replace('Use @file, @brief, @details, @ingroup, @param, @return, @pre, @post, @warning,','Use file, brief, details, ingroup, param, return, pre, post, warning commands,').replace('@note and @see where appropriate.','note and see commands where appropriate.')
+p=Path('doxygen_docs/guides.dox');s=p.read_text().replace('Use @file, @brief, @details, @ingroup, @param, @return, @pre, @post, @warning,','Use file, brief, details, ingroup, param, return, pre, post, warning commands,').replace('@note and @see where appropriate.','note and see commands where appropriate.')
 p.write_text(s)

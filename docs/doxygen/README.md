@@ -4,8 +4,8 @@
 Install Doxygen (recommended 1.9.8 or newer) and optionally Graphviz. From the repository root:
 
 ```sh
-doxygen Doxyfile
-# Open build-docs/html/index.html
+doxygen doxygen_docs/Doxyfile
+# Open doxygen_docs/generated/html/index.html
 ```
 
 Doxyfile controls comprehensive C/CUDA, Python, guide and source-file extraction. CUDA is parsed as C++ text; no `nvcc`, device discovery, training or GPU tests occur. CMake integration is optional and additive:
@@ -16,7 +16,7 @@ cmake --build build --target docs
 cmake --build build --target docs-clean
 ```
 
-Original vcpkg/cmocka discovery, custom targets and optional CUDA build are preserved. The older attached CMake template is not copied over the current repository. Generated HTML/XML/warning logs are under ignored `build-docs/`.
+Original vcpkg/cmocka discovery, custom targets and optional CUDA build are preserved. The older attached CMake template is not copied over the current repository. Generated HTML/XML/warning logs are under ignored `doxygen_docs/generated/`.
 
 ## Reference contents
 - Dedicated main page and reading paths
@@ -34,11 +34,11 @@ Public headers are canonical. Document exact dimensions, borrowed/owned lifetime
 
 ```sh
 python scripts/document_repository.py
-doxygen Doxyfile
+doxygen doxygen_docs/Doxyfile
 python scripts/check_doxygen.py
 ```
 
-The annotation tool is conservative, not a full C++ parser. It preserves executable code and existing contracts, annotates named declarations/definitions, and adds file/module attribution. Review ambiguous internal parameters and any new API manually. Coverage checks generated XML for named public API briefs and group/page hierarchy. EXTRACT_ALL exposes otherwise undocumented symbols; it does not prove exhaustive semantic documentation. Read `build-docs/doxygen-warnings.log` and inspect HTML after each update.
+The annotation tool is conservative, not a full C++ parser. It preserves executable code and existing contracts, annotates named declarations/definitions, and adds file/module attribution. Review ambiguous internal parameters and any new API manually. Coverage checks generated XML for named public API briefs and group/page hierarchy. EXTRACT_ALL exposes otherwise undocumented symbols; it does not prove exhaustive semantic documentation. Read `doxygen_docs/generated/doxygen-warnings.log` and inspect HTML after each update.
 
 Doxygen does not natively model YAML/JSON/CMake as scientific APIs. Such files are retained for source browsing and explained in the tooling guide. CUDA parser limitations may produce source-only launch/kernel references. Do not hide those limitations by claiming compiler-level coverage or GPU validation.
 

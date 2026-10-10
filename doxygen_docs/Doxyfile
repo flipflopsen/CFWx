@@ -3,7 +3,7 @@ DOXYFILE_ENCODING       = UTF-8
 PROJECT_NAME           = "CFWx"
 PROJECT_NUMBER         = "development"
 PROJECT_BRIEF          = "C17 numerical, Transformer, training and optional CUDA reference library"
-OUTPUT_DIRECTORY       = build-docs
+OUTPUT_DIRECTORY = doxygen_docs/generated
 CREATE_SUBDIRS          = NO
 ALLOW_UNICODE_NAMES     = NO
 OUTPUT_LANGUAGE        = English
@@ -18,13 +18,13 @@ BUILTIN_STL_SUPPORT    = YES
 CPP_CLI_SUPPORT        = NO
 
 # Public APIs, internal implementation, tests, maintenance scripts and guides.
-INPUT                  = include src test scripts docs README.md ARCHITECTURE.md TRAINING.md RUNTIME.md CUDA.md TRANSFORMER_BLOCKS.md CODE_STYLEGUIDE.md
+INPUT = include src test scripts docs doxygen_docs
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.c *.cu *.py *.md *.dox
 EXTENSION_MAPPING      = cu=C++ cmake=C++ yml=C++ yaml=C++ json=C++ txt=C++
-EXCLUDE_PATTERNS       = */build/* */build-*/* */bin/* */log/* */.git/* */.cache/*
+EXCLUDE_PATTERNS = */generated/* */build/* */build-*/* */bin/* */log/* */.git/* */.cache/*
 EXCLUDE_SYMLINKS       = YES
-EXAMPLE_PATH           = . test src/experiments docs docs/gpu-runtime
+EXAMPLE_PATH = . test src/experiments docs docs/gpu-runtime doxygen_docs
 EXAMPLE_PATTERNS       = *.c *.md
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             = docs
@@ -120,4 +120,4 @@ WARN_IF_DOC_ERROR      = YES
 WARN_NO_PARAMDOC       = YES
 WARN_AS_ERROR          = NO
 WARN_FORMAT            = "$file:$line: $text"
-WARN_LOGFILE           = build-docs/doxygen-warnings.log
+WARN_LOGFILE = doxygen_docs/generated/doxygen-warnings.log

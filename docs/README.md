@@ -81,9 +81,26 @@ the original `cfwx_train` runner. CPU micro-batch accumulation is implemented;
 fused batching and GPU execution remain explicitly unsupported rather than mislabeled.
 
 ## Doxygen HTML reference
-Run `doxygen Doxyfile` from the repository root and open `build-docs/html/index.html`.
+Run `doxygen doxygen_docs/Doxyfile` from the repository root and open `doxygen_docs/generated/html/index.html`.
 The additive CMake `docs` target runs the same configuration. Documentation includes
 module groups, public contracts, internal definitions, source browsing, model/state
 records, tests and multi-page architecture/training/runtime/GPU design guides.
-See `docs/doxygen/README.md`. CUDA is parsed as source only; no GPU build or test is
+See `doxygen/README.md`. CUDA is parsed as source only; no GPU build or test is
 required or performed by documentation generation.
+
+## Developer documentation index
+- [Environment and complete setup](developer/setup.md)
+- [Developer contribution workflow](developer/contributing.md)
+- [Documentation layout](developer/documentation-layout.md)
+- [Architecture](ARCHITECTURE.md)
+- [Training and datasets](TRAINING.md)
+- [Runtime, checkpoints and generation](RUNTIME.md)
+- [Transformer blocks](TRANSFORMER_BLOCKS.md)
+- [Code style](CODE_STYLEGUIDE.md)
+- [CUDA manual build/validation](CUDA.md)
+- [GPU implementation roadmap](gpu-runtime/overview.md)
+- [Doxygen manual instructions](doxygen/README.md)
+
+All Markdown lives under docs/. Doxygen configuration/pages live under
+[doxygen_docs](../doxygen_docs/Doxyfile); generated HTML/XML are ignored under
+`doxygen_docs/generated/`. Run `doxygen doxygen_docs/Doxyfile` from repository root.

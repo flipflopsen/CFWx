@@ -11,8 +11,8 @@ from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 
-root=Path('build-docs/xml')
-if not (root/'index.xml').exists():raise SystemExit('Run doxygen Doxyfile first')
+root=Path('doxygen_docs/generated/xml')
+if not (root/'index.xml').exists():raise SystemExit('Run doxygen doxygen_docs/Doxyfile first')
 functions={}
 for file in root.glob('*.xml'):
     if file.name=='index.xml':continue

@@ -31,7 +31,7 @@ for path in Path('include/maths').glob('*.c'):
     path.write_text(text)
 # Type-aware, operation-specific details already appear in API header blocks;
 # preserve a manual catalog page alongside generic/internal source attribution.
-p=Path('Doxyfile');text=p.read_text()
+p=Path('doxygen_docs/Doxyfile');text=p.read_text()
 text=text.replace('EXAMPLE_PATH           = test src/experiments','EXAMPLE_PATH           = . test src/experiments docs docs/gpu-runtime')
 text=text.replace('EXAMPLE_PATTERNS       = *.c\n','EXAMPLE_PATTERNS       = *.c *.md\n')
 p.write_text(text)

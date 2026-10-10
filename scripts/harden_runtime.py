@@ -9,7 +9,7 @@ p=Path('test/runtime_test.c');s=p.read_text()
 s=s.replace('CHECK(fputc(0xff,f)!=EOF);','int original=fgetc(f);CHECK(original!=EOF);CHECK(fseek(f,100,SEEK_SET)==0);CHECK(fputc(original^1,f)!=EOF);')
 s=s.replace('CHECK(fputc(0xff, f) != EOF);','int original = fgetc(f); CHECK(original != EOF); CHECK(fseek(f, 100, SEEK_SET) == 0); CHECK(fputc(original ^ 1, f) != EOF);')
 p.write_text(s)
-for name in ('README.md','TRAINING.md','ARCHITECTURE.md'):
+for name in ('docs/README.md','docs/TRAINING.md','docs/ARCHITECTURE.md'):
  p=Path(name);s=p.read_text()
  if '## Runtime lifecycle update' not in s:
   s+='''

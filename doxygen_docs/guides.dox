@@ -2,9 +2,9 @@
  * @page getting_started Getting started and navigation
  * @tableofcontents
  * @section gs_docs Generate the manual
- * Run `doxygen Doxyfile` in the repository root. HTML is under
- * `build-docs/html/index.html`; XML is under `build-docs/xml` for coverage tools.
- * Warnings are captured in `build-docs/doxygen-warnings.log`. Graphviz is optional;
+ * Run `doxygen doxygen_docs/Doxyfile` in the repository root. HTML is under
+ * `doxygen_docs/generated/html/index.html`; XML is under `doxygen_docs/generated/xml` for coverage tools.
+ * Warnings are captured in `doxygen_docs/generated/doxygen-warnings.log`. Graphviz is optional;
  * set HAVE_DOT=NO in a local copy of Doxyfile if absent. CMake's `docs` target
  * invokes the same root configuration without building/running the numerical core.
  * @section gs_cpu CPU execution
@@ -28,7 +28,7 @@
  * kernels do not log or terminate the process. CUDA owns a separate device ABI
  * and storage layout; CPU checkpoint registries cannot be copied positionally.
  * @section arch_map Full repository map
- * @include{doc} ARCHITECTURE.md
+ * @include{doc} docs/ARCHITECTURE.md
  */
 
 /**
@@ -54,7 +54,7 @@
  * never apply invalid gradients. Basic elementwise vector operations can propagate
  * IEEE-754 NaN/Inf. Scientific data must be validated according to each API.
  * @section nc_blocks Detailed block composition
- * @include{doc} TRANSFORMER_BLOCKS.md
+ * @include{doc} docs/TRANSFORMER_BLOCKS.md
  */
 
 /**
@@ -68,14 +68,14 @@
  * validation. Recompute uses current inputs/parameters; mutation between matching
  * forward/backward is invalid. AdamW holds moments and one global update step.
  * @section tg_dataset Dataset tutorial
- * @include{doc} TRAINING.md
+ * @include{doc} docs/TRAINING.md
  */
 
 /**
  * @page runtime_guide Batching, persistence and decoding
  * @tableofcontents
  * @section rt_usage Runtime usage
- * @include{doc} RUNTIME.md
+ * @include{doc} docs/RUNTIME.md
  * @section rt_sliding Configurable sliding cache
  * CPU cache uses fixed or sliding mode. Absolute positions do not reset on eviction.
  * Sliding cache is not identical to recomputing a truncated raw-token context with
@@ -93,7 +93,7 @@
  * CUDA compilation/probing/execution. Source has not been GPU-validated by the
  * assistant. Sequence launch fusion is not cuBLAS/Tensor Core/FlashAttention.
  * @section gg_manual Manual commands and limits
- * @include{doc} CUDA.md
+ * @include{doc} docs/CUDA.md
  * @section gg_index Design-document index
  * @include{doc} docs/gpu-runtime/overview.md
  */
@@ -167,7 +167,7 @@
  * @section doc_commands Commands
  * @code{.sh}
  * python scripts/document_repository.py
- * doxygen Doxyfile
+ * doxygen doxygen_docs/Doxyfile
  * python scripts/check_doxygen.py
  * @endcode
  * These commands are source/document operations only. Generated HTML/XML are

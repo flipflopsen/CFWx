@@ -7,3 +7,6 @@ log/*.log
 *.ckpt.tmp
 
 build-docs/
+
+doxygen_docs/generated/
+.venv/

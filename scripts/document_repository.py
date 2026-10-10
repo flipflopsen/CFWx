@@ -325,13 +325,13 @@ if 'include(cmake/doxygen.cmake)' not in text:
     text+='\n# Documentation is additive and never requires configuring CUDA.\ninclude(cmake/doxygen.cmake)\n'
 p.write_text(text)
 p=Path('.gitignore');text=p.read_text()
-if 'build-docs/' not in text:text+='\nbuild-docs/\n'
+if 'doxygen_docs/generated/' not in text:text+='\ndoxygen_docs/generated/\n'
 p.write_text(text)
-p=Path('README.md');text=p.read_text()
+p=Path('docs/README.md');text=p.read_text()
 if '## Doxygen HTML reference' not in text:
     text+='''
 ## Doxygen HTML reference
-Run `doxygen Doxyfile` from the repository root and open `build-docs/html/index.html`.
+Run `doxygen doxygen_docs/Doxyfile` from the repository root and open `doxygen_docs/generated/html/index.html`.
 The additive CMake `docs` target runs the same configuration. Documentation includes
 module groups, public contracts, internal definitions, source browsing, model/state
 records, tests and multi-page architecture/training/runtime/GPU design guides.

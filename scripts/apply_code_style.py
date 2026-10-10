@@ -90,7 +90,7 @@ endif()
 
 # Custom targets for additional functionality""")
 p.write_text(s)
-p = Path("README.md")
+p = Path("docs/README.md")
 s = p.read_text().replace("numerical_runner()", "numerical_runner(&logger)")
 s = s.replace("restored verbatim", "restored behavior (subsequently reformatted)")
 if "## Named experiment logging" not in s:

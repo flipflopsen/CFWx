@@ -42,7 +42,7 @@ endif()
 '''
 p.write_text(s)
 p=Path('include/models/transformer.h');s=p.read_text().replace('This module is forward-only except activation, embedding and loss gradients.','Analytic composite backward APIs are declared in models/training.h.').replace('cross-attention or a trainable autodiff graph.','cross-attention. Training APIs are in models/training.h.');p.write_text(s)
-p=Path('TRANSFORMER_BLOCKS.md');s=p.read_text()
+p=Path('docs/TRANSFORMER_BLOCKS.md');s=p.read_text()
 if '## Analytic training update' not in s:
  s+='''
 ## Analytic training update
@@ -54,7 +54,7 @@ and the vocabulary head. See TRAINING.md and ARCHITECTURE.md. Earlier forward-on
 refer to the original forward API surface, not the current repository capabilities.
 '''
 p.write_text(s)
-p=Path('README.md');s=p.read_text()
+p=Path('docs/README.md');s=p.read_text()
 if '## End-to-end Transformer training' not in s:
  s+='''
 ## End-to-end Transformer training
