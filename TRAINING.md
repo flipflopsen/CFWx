@@ -83,3 +83,11 @@ ctest --test-dir build-asan --output-on-failure
 ```
 
 No GPU/fused kernels, KV cache, serialization/resume, BPE tokenizer, distributed training, mixed precision, or full encoder-decoder stack is supplied. Byte training with a causal stack is genuinely end-to-end trainable but educational. The logger backend remains single-threaded; experiment contexts borrow caller-provided names and sinks.
+
+## Runtime lifecycle update
+The previous no-checkpoint, single-window, dropout-disabled and no-KV-cache
+limitations are superseded by [RUNTIME.md](RUNTIME.md) and `models/runtime.h`.
+Use `cfwx_run` for dropout-enabled mini-batch training, complete held-out evaluation,
+checkpoint/resume and incremental cached generation. Earlier descriptions refer to
+the original `cfwx_train` runner. CPU micro-batch accumulation is implemented;
+fused batching and GPU execution remain explicitly unsupported rather than mislabeled.

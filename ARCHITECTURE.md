@@ -69,3 +69,11 @@ CMake still defaults to vcpkg; pass `CFWX_USE_VCPKG=OFF` in environments without
 Add a new numerical primitive with a documented forward contract, analytic vector-Jacobian product and finite-difference test. To integrate it into composite training, add a tape operation or compose existing differentiable operations. Add dataset experiments as named-logger runners rather than modifying kernels or replacing startup.
 
 Priorities beyond this implementation: cached forward workspaces, token-weighted mini-batches, full held-out evaluation, tokenizer/vocabulary persistence, parameter/optimizer checkpoints, scheduler, generation sampling and KV cache. These are not silently claimed as implemented.
+
+## Runtime lifecycle update
+The previous no-checkpoint, single-window, dropout-disabled and no-KV-cache
+limitations are superseded by [RUNTIME.md](RUNTIME.md) and `models/runtime.h`.
+Use `cfwx_run` for dropout-enabled mini-batch training, complete held-out evaluation,
+checkpoint/resume and incremental cached generation. Earlier descriptions refer to
+the original `cfwx_train` runner. CPU micro-batch accumulation is implemented;
+fused batching and GPU execution remain explicitly unsupported rather than mislabeled.

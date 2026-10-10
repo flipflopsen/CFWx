@@ -71,3 +71,11 @@ Run `cfwx_train` for the built-in overfit regression or provide a small byte dat
 See [TRAINING.md](TRAINING.md) for commands, reduction/tokenization semantics and limitations,
 and [ARCHITECTURE.md](ARCHITECTURE.md) for the repository/dependency overview.
 The previous forward-only limitation is superseded by `models/training.h`.
+
+## Runtime lifecycle update
+The previous no-checkpoint, single-window, dropout-disabled and no-KV-cache
+limitations are superseded by [RUNTIME.md](RUNTIME.md) and `models/runtime.h`.
+Use `cfwx_run` for dropout-enabled mini-batch training, complete held-out evaluation,
+checkpoint/resume and incremental cached generation. Earlier descriptions refer to
+the original `cfwx_train` runner. CPU micro-batch accumulation is implemented;
+fused batching and GPU execution remain explicitly unsupported rather than mislabeled.

@@ -2,6 +2,7 @@
  * Fan-out accumulates adjoints, including shared self-attention Q/K/V inputs.
  * Recompute trades speed for a simple API with no stale external cache. */
 #include "models/training.h"
+#include "models/runtime.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -17,7 +18,8 @@ typedef enum
     HEAD,
     SLICE,
     JOIN,
-    EMBED
+    EMBED,
+    DROPOUT
 } operation;
 typedef struct node node;
 struct node
@@ -28,6 +30,7 @@ struct node
     double *destination;
     size_t start;
     double epsilon;
+    double *dropout_mask;
     bool rms, causal;
     cfwx_activation activation;
     const bool *mask;
@@ -39,6 +42,8 @@ typedef struct
     node *nodes[MAX_NODES];
     size_t count;
     cfwx_status status;
+    double dropout;
+    uint64_t *rng;
 } tape;
 
 static bool shape(const cfwx_matrix *x, size_t rows, size_t cols)
@@ -76,6 +81,7 @@ static void release(tape *t)
     {
         cfwx_matrix_free(&t->nodes[i]->value);
         cfwx_matrix_free(&t->nodes[i]->grad);
+        free(t->nodes[i]->dropout_mask);
         free(t->nodes[i]);
     }
 }
@@ -294,6 +300,26 @@ static node *feedforward(tape *t, node *x, const cfwx_feedforward *layer, cfwx_f
     return dense(t, a, &layer->down, g ? &g->down : NULL);
 }
 
+/* Store multipliers on the actual graph: backward must reuse the forward mask. */
+static node *training_dropout(tape *t, node *x)
+{
+    if (!x || t->dropout == 0.0)
+        return x;
+    node *n = allocate(t, x->value.rows, x->value.cols, DROPOUT);
+    if (!n)
+        return NULL;
+    n->a = x;
+    n->dropout_mask = calloc(x->value.rows * x->value.cols, sizeof(double));
+    if (!n->dropout_mask)
+    {
+        t->status = CFWX_ALLOC;
+        return NULL;
+    }
+    cfwx_matrix mask = {x->value.rows, x->value.cols, n->dropout_mask};
+    t->status = cfwx_dropout(&x->value, t->dropout, true, t->rng, &n->value, &mask);
+    return n;
+}
+
 static node *block(tape *t, node *x, const cfwx_transformer_block *layer, cfwx_transformer_block *g,
                    const bool *mask, bool causal)
 {
@@ -316,12 +342,12 @@ static node *block(tape *t, node *x, const cfwx_transformer_block *layer, cfwx_t
         n[i] = leaf(t, vectors[i]->data, 1, vectors[i]->size, g ? grads[i]->data : NULL);
     }
     node *ln1 = normalization(t, x, n[0], n[1], layer->epsilon, false);
-    node *residual = binary(
-        t, x, multihead(t, ln1, ln1, &layer->attention, g ? &g->attention : NULL, mask, causal),
-        ADD);
+    node *attention_branch =
+        multihead(t, ln1, ln1, &layer->attention, g ? &g->attention : NULL, mask, causal);
+    node *residual = binary(t, x, training_dropout(t, attention_branch), ADD);
     node *ln2 = normalization(t, residual, n[2], n[3], layer->epsilon, false);
-    return binary(t, residual, feedforward(t, ln2, &layer->feedforward, g ? &g->feedforward : NULL),
-                  ADD);
+    node *feedforward_branch = feedforward(t, ln2, &layer->feedforward, g ? &g->feedforward : NULL);
+    return binary(t, residual, training_dropout(t, feedforward_branch), ADD);
 }
 
 /* Reverse one node, accumulating into all parents (never overwrite fan-out). */
@@ -331,6 +357,12 @@ static void reverse_node(tape *t, node *n)
     node *a = n->a, *b = n->b, *c = n->c;
     if (n->op == LEAF)
         return;
+    if (n->op == DROPOUT)
+    {
+        for (size_t i = 0; i < rows * cols; i++)
+            a->grad.data[i] += n->grad.data[i] * n->dropout_mask[i];
+        return;
+    }
     if (n->op == ADD || n->op == MUL)
         for (size_t i = 0; i < rows * cols; i++)
         {
@@ -859,13 +891,16 @@ cfwx_status cfwx_language_model_forward(const cfwx_language_model *m, const size
     return s;
 }
 
-cfwx_status cfwx_language_model_loss(const cfwx_language_model *m, const size_t *ids,
-                                     const size_t *targets, size_t length, double *loss,
-                                     cfwx_language_model *g)
+cfwx_status cfwx_language_model_loss_training(const cfwx_language_model *m, const size_t *ids,
+                                              const size_t *targets, size_t length, double dropout,
+                                              uint64_t *rng, double *loss, cfwx_language_model *g)
 {
-    if (!targets || !loss)
+    if (!targets || !loss || !isfinite(dropout) || dropout < 0.0 || dropout >= 1.0 ||
+        (dropout > 0.0 && !rng))
         return CFWX_INVALID;
     tape t = {0};
+    t.dropout = dropout;
+    t.rng = rng;
     node *out = language(&t, m, ids, length, g);
     cfwx_status s = t.status;
     cfwx_matrix upstream = {0};
@@ -879,4 +914,12 @@ cfwx_status cfwx_language_model_loss(const cfwx_language_model *m, const size_t 
     cfwx_matrix_free(&upstream);
     release(&t);
     return s;
+}
+
+cfwx_status cfwx_language_model_loss(const cfwx_language_model *model, const size_t *tokens,
+                                     const size_t *targets, size_t length, double *loss,
+                                     cfwx_language_model *gradient)
+{
+    return cfwx_language_model_loss_training(model, tokens, targets, length, 0.0, NULL, loss,
+                                             gradient);
 }
