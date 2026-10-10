@@ -1,30 +1,25 @@
 name: Apply documented C code style
-
-# Explicit maintenance event; never runs arbitrary PR code with write access.
 on:
-  repository_dispatch:
-    types: [apply-cfwx-code-style]
-
+  push:
+    branches: [feature/implement_basics]
+    paths: [scripts/apply_code_style.py, .clang-format, .github/workflows/apply-code-style.yml]
 permissions:
   contents: write
-
 jobs:
   apply:
-    if: github.event.client_payload.branch == 'feature/implement_basics'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feature/implement_basics
-      - name: Install formatter and test dependencies
+      - name: Install dependencies
         run: |
           python -m pip install clang-format==22.1.0
           sudo apt-get update
           sudo apt-get install -y libcmocka-dev
-      - name: Apply style and documented contracts
-        run: python scripts/apply_code_style.py
-      - name: Verify idempotence
+      - name: Apply and verify style
         run: |
+          python scripts/apply_code_style.py
           git diff > /tmp/first.diff
           python scripts/apply_code_style.py
           git diff > /tmp/second.diff
@@ -34,7 +29,7 @@ jobs:
           cmake -S . -B build -DCFWX_USE_VCPKG=OFF
           cmake --build build --parallel 2
           ctest --test-dir build --output-on-failure
-      - name: Commit source formatting only
+      - name: Commit formatting only
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
