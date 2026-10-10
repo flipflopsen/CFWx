@@ -37,7 +37,11 @@ file(MAKE_DIRECTORY ${BINDIR} ${LOGDIR} ${LIBDIR})
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3 -O0 -DDEBUG=1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_options(-Wall -Wextra -pedantic -fstack-protector-all -Wstack-protector)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wall> $<$<COMPILE_LANGUAGE:C>:-Wextra>
+        $<$<COMPILE_LANGUAGE:C>:-pedantic> $<$<COMPILE_LANGUAGE:C>:-fstack-protector-all>
+        $<$<COMPILE_LANGUAGE:C>:-Wstack-protector>)
+endif()
 add_compile_definitions(PROJECT_ROOT="${PROJECT_PATH}")
 
 # Find source files, preserving the original module structure.
@@ -250,3 +254,6 @@ if(CFWX_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         endif()
     endforeach()
 endif()
+
+# CUDA is explicitly opt-in; no CUDA configuration in ordinary CPU builds.
+include(cmake/cuda_backend.cmake)

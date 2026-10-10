@@ -1,7 +1,7 @@
 """Static source maintenance only: NEVER configures, compiles or executes CUDA."""
 from pathlib import Path
 p=Path('src/gpu/cuda_training.cu');s=p.read_text()
-if 'double *dropmask=nullptr' not in s:
+if 'dropmask' not in s:
  s=s.replace('double *value=nullptr,*adjoint=nullptr;','double *value=nullptr,*adjoint=nullptr;\n    double *dropmask=nullptr;')
  s=s.replace('GELU, DROP, LOOKUP };','GELU, DROP, LOOKUP, MAXIMUM };')
  s=s.replace('bool training,uint64_t rng,int *status)','bool training,uint64_t rng,double *dropmask,int *status)')
