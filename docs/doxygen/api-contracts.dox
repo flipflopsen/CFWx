@@ -1,0 +1,70 @@
+/**
+ * @page api_contract_examples Practical API contracts and usage
+ * @tableofcontents
+ * @section api_vectors Vectors
+ * A cfwx_vector owns a contiguous size-element double array. Constructor requires
+ * an empty owner; size zero or size overflowing double allocation is invalid.
+ * Allocation failure does not transfer ownership. cfwx_vector_free frees and resets
+ * the owner and accepts NULL. Dot checks two live operands and equal lengths,
+ * performs compensated summation, then writes its scalar output only if finite.
+ * Add requires equal lengths for both operands and preallocated output. Scale is
+ * in-place and requires a finite multiplier. Add/scale may propagate IEEE-754
+ * nonfinite results; they do not promise transactional numerical validation.
+ * @code{.c}
+ * cfwx_vector x = {0}, y = {0};
+ * if (cfwx_vector_init(&x, 3) != CFWX_OK) return EXIT_FAILURE;
+ * if (cfwx_vector_init(&y, 3) != CFWX_OK)
+ * {
+ *     cfwx_vector_free(&x);
+ *     return EXIT_FAILURE;
+ * }
+ * double result = 0.0;
+ * cfwx_status status = cfwx_vector_dot(&x, &y, &result);
+ * cfwx_vector_free(&x);
+ * cfwx_vector_free(&y);
+ * @endcode
+ * @section api_matrix Matrices
+ * cfwx_matrix owns rows*cols contiguous doubles. Init requires empty state and
+ * validates allocation overflow. Product accepts A[M,K], B[K,N], out[M,N].
+ * Output may not overlap input storage. Nonfinite intermediate result returns
+ * CFWX_NUMERIC; earlier output entries may already be written. Transpose accepts
+ * input[M,N] and output[N,M] and forbids in-place aliasing. It copies values and
+ * can propagate nonfinite entries rather than validating finite content.
+ * @section api_tensor Tensors
+ * cfwx_tensor owns one contiguous array with rank 1..8, positive shape entries,
+ * row-major strides and a total element count. Offset checks each index before
+ * writing the flattened offset. Reshape validates the new product and preserves
+ * both allocation and data order; it does not transpose or create strided views.
+ * @section api_affine Dense and neurons
+ * Affine neuron output is dot(weights,input)+bias, with activation chosen by the
+ * caller. Dense X[B,I], W[I,O], bias[O] gives Y[B,O]. Backward overwrites dX[B,I],
+ * dW[I,O] and db[O], with no implicit batch mean. Loss reduction determines scaling.
+ * Dense initialization uses local deterministic SplitMix64 and Xavier-uniform
+ * weights; reproducibility is pseudorandom, not cryptographic.
+ * @section api_norm Normalization
+ * LayerNorm uses per-row population variance divided by feature count. Epsilon
+ * must be positive finite; gamma/beta have one entry per feature. In-place forward
+ * is allowed only under its explicit alias contract. RMSNorm does not subtract
+ * mean; its denominator is sqrt(mean(x*x)+epsilon). Backward accumulates scale/shift
+ * contributions across rows and includes the derivative of statistics, not a
+ * detached-statistics approximation. Gradient storage must be disjoint and valid.
+ * @section api_checkpoint Persistence and failure boundaries
+ * CPU checkpoint save validates the supported architecture, finite tensors and
+ * moment state; it writes a unique temporary, fflush/fsyncs payload, closes,
+ * renames and fsyncs the parent directory. Before rename failure preserves the
+ * previous file. Directory fsync failure after rename leaves durability uncertain
+ * and cannot guarantee the old checkpoint is unchanged. Only one writer is
+ * supported. Load bounds serialized sizes and validates checksum and trailing data
+ * before publishing newly allocated model/optimizer state. FNV is corruption
+ * detection rather than authentication. CPU and CUDA parameter layouts are distinct.
+ * @section api_cuda CUDA API queries and mode
+ * cfwx_cuda_create writes a newly allocated opaque model pointer on success and
+ * NULL on entry. Allocation/resource failure returns nonzero plus caller-owned error
+ * text. cfwx_cuda_free releases stream/device buffers. Error query returns borrowed
+ * text; parameter-count query returns a scalar size, not a status code. Parameter
+ * get/set copy between host arrays and device storage, requiring exact flattened
+ * count. Gradient get reflects the most recent analytic backward; update-time
+ * clipping can affect stored gradients. CUDA APIs require an explicitly configured
+ * local CUDA build and manual validation; source documentation does not establish
+ * ABI/compiler or numerical correctness.
+ */
